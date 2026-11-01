@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bluffin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FF6A00'/%3E%3Ctext x='50' y='72' font-size='64' font-weight='800' text-anchor='middle' fill='%230A0A0A' font-family='sans-serif'%3EB%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0A0A;--sf:#171717;--ink:#FFFFFF;--mut:#A6A6A6;--or:#FF6A00;--ln:#2E2E2E;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:18px;line-height:1.4}
+#app{max-width:600px;margin:0 auto;padding:20px 18px 40px;min-height:100vh;display:flex;flex-direction:column;gap:14px}
+h1{font-size:76px;line-height:.9;margin:18px 0 4px;font-weight:800;letter-spacing:-3px}
+h1 i{display:block;width:84px;height:10px;background:var(--or);border-radius:5px;margin-top:10px}
+h2{font-size:28px;line-height:1.1;margin:8px 0 0;font-weight:800;letter-spacing:-.5px}
+p{margin:0}.mut{color:var(--mut);font-size:16px}
+.btn{font:inherit;font-weight:800;min-height:56px;width:100%;border:2px solid var(--ink);border-radius:16px;background:transparent;color:var(--ink);padding:12px 16px;cursor:pointer}
+.btn:hover:not(:disabled){background:#1f1f1f}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.p{background:var(--or);border-color:var(--or);color:#0A0A0A}.btn.p:hover:not(:disabled){background:#ff7f26}
+.btn.g{border-color:var(--ln);font-weight:600}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:3px solid var(--or);outline-offset:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{font:inherit;font-weight:600;min-height:50px;border:2px solid var(--ln);background:var(--sf);color:var(--ink);border-radius:14px;padding:8px 10px;cursor:pointer;text-align:left}
+.chip.on{border-color:var(--or);background:var(--or);color:#0A0A0A}
+.row{display:flex;gap:8px}
+input,textarea{font:inherit;width:100%;border:2px solid var(--ln);border-radius:14px;background:var(--sf);color:var(--ink);padding:12px 14px;min-height:52px}
+textarea{min-height:90px;resize:vertical}
+.set{display:flex;flex-direction:column;gap:6px}.set b{font-weight:800}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg .chip{min-height:44px;flex:1;text-align:center;padding:6px 10px}
+.card{background:var(--sf);border:2px solid var(--ln);border-radius:20px;padding:16px}
+.secret{border-radius:24px;min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;gap:8px;font-weight:800}
+.secret.hid{background:repeating-linear-gradient(135deg,var(--or) 0 14px,#0A0A0A 14px 28px);color:#fff;font-size:24px;border:2px solid var(--or)}
+.secret.hid span{background:#0A0A0A;padding:6px 12px;border-radius:10px}
+.secret.word{background:#fff;color:#0A0A0A;font-size:38px;letter-spacing:-1px}
+.secret.imp{background:var(--or);color:#0A0A0A;font-size:36px;letter-spacing:-1px}
+.secret small{font-size:16px;font-weight:600}
+.code{font-size:60px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--or)}
+.ord{display:flex;flex-direction:column;gap:8px}
+.ord div{display:flex;gap:10px;align-items:center;padding:11px 14px;border:2px solid var(--ln);border-radius:14px;background:var(--sf)}
+.ord .now{border-color:var(--or);background:var(--or);color:#0A0A0A;font-weight:800;font-size:22px}
+.ord .done{opacity:.4;text-decoration:line-through}
+.off{opacity:.45}
+.timer{font-size:72px;font-weight:800;text-align:center;letter-spacing:-2px;font-variant-numeric:tabular-nums}.timer.end{color:var(--or)}
+.bar{display:flex;align-items:center;gap:10px;margin:4px 0}.bar span:first-child{flex:0 0 38%;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.bar i{display:block;height:22px;background:#fff;border-radius:8px;min-width:6px}.bar.top i{background:var(--or)}
+.win{font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px}.win.g{color:#fff}.win.i{color:var(--or)}
+.err{color:var(--or);font-weight:600}
+.vbox{border:2px solid var(--ln);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.live{color:var(--or);font-weight:800}
+@media (prefers-reduced-motion:no-preference){.secret{animation:pop .18s ease-out}@keyframes pop{from{transform:scale(.96)}to{transform:scale(1)}}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ss=(k,v)=>{try{if(v===undefined)return sessionStorage.getItem(k)||"";v===null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v)}catch(e){return ""}};
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}};
+let pid=ss("bf_pid");if(!pid){pid=Math.random().toString(36).slice(2,10);ss("bf_pid",pid)}
+const CAT=[["des","🎨","Desenhos e animações"],["jog","🎮","Jogos e videogames"],["fil","🎬","Filmes e séries"],["per","🦸","Personagens"],["fut","⚽","Futebol"],["cel","⭐","Celebridades"],["ani","🐧","Animais"],["com","🍕","Comidas"],["lug","📍","Lugares"],["obj","🔑","Objetos"]];
+const U={scr:"entry",name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false};
+let S=null,ws=null,off=0,ICE=[{urls:"stun:stun.l.google.com:19302"}],tt=null,lastSig="",retry=0,wantCreate=false;
+const V={on:false,muted:false,stream:null,pcs:{},auds:{}};
+
+/* ---------- conexão ---------- */
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
+function connect(create,code){
+ U.busy=true;U.err="";wantCreate=create;rr();
+ ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
+ ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code})};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.t==="s"){off=m.now-Date.now();delete m.now;S=m;U.scr="game";U.busy=false;U.code=m.code;ss("bf_room",m.code);
+   if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs=""}voiceSync();rr()}
+  else if(m.t==="ice")ICE=m.ice;
+  else if(m.t==="sig")onSig(m.from,m.d);
+  else if(m.t==="err"){U.err=m.m;U.busy=false;U.scr="entry";S=null;ss("bf_room",null);ws.onclose=null;rr()}};
+ ws.onclose=()=>{if(U.scr==="game"&&ss("bf_room")){const code=ss("bf_room");setTimeout(()=>connect(false,code),Math.min(5000,1000*(++retry)))}else{U.busy=false;rr()}};
+}
+const me=()=>S&&S.players.find(p=>p.id===S.me);
+const nm=id=>(S.nm&&S.nm[id])||((S.players.find(p=>p.id===id)||{}).n)||"?";
+const isH=()=>S&&S.me===S.host;
+
+/* ---------- áudio (WebRTC, malha entre jogadores) ---------- */
+function canTalk(id){
+ if(!S||S.cfg.voice==="off")return false;if(S.cfg.voice==="open")return true;
+ if(S.ph==="role"||S.ph==="guess")return false;
+ if(S.ph==="hint"&&S.ord&&S.ord.length)return S.ord[S.st%S.ord.length]===id;
+ return true;
+}
+async function voiceJoin(){
+ try{V.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+ catch(e){U.err="Não consegui acessar o microfone. Libere a permissão no navegador (precisa de HTTPS).";rr();return}
+ V.on=true;V.muted=false;U.err="";send({t:"voice",on:true});voiceSync();rr();
+}
+function voiceLeave(){
+ Object.keys(V.pcs).forEach(hang);if(V.stream)V.stream.getTracks().forEach(t=>t.stop());
+ V.stream=null;V.on=false;send({t:"voice",on:false});rr();
+}
+function hang(id){const pc=V.pcs[id];if(pc){pc.onicecandidate=null;pc.close();delete V.pcs[id]}const a=V.auds[id];if(a){a.srcObject=null;delete V.auds[id]}}
+function voiceSync(){
+ if(!S)return;
+ if(V.on&&S.cfg.voice==="off"){voiceLeave();return}
+ if(V.stream)V.stream.getAudioTracks().forEach(t=>t.enabled=!V.muted&&canTalk(S.me));
+ S.players.forEach(p=>{if(p.id===S.me)return;
+  if(V.on&&p.v&&!V.pcs[p.id]&&S.me<p.id)call(p.id);
+  if((!V.on||!p.v)&&V.pcs[p.id])hang(p.id);
+  const a=V.auds[p.id];if(a)a.muted=!canTalk(p.id)});
+}
+function mkpc(id){
+ const pc=new RTCPeerConnection({iceServers:ICE});V.pcs[id]=pc;
+ V.stream.getTracks().forEach(t=>pc.addTrack(t,V.stream));
+ pc.onicecandidate=e=>{if(e.candidate)send({t:"sig",to:id,d:{c:e.candidate}})};
+ pc.ontrack=e=>{let a=V.auds[id];if(!a){a=new Audio();a.autoplay=true;V.auds[id]=a}a.srcObject=e.streams[0];a.muted=!canTalk(id);a.play().catch(()=>{})};
+ pc.onconnectionstatechange=()=>{if(pc.connectionState==="failed"&&V.pcs[id]===pc){hang(id);setTimeout(voiceSync,1500)}};
+ return pc;
+}
+async function flush(pc){const q=pc.q||[];pc.q=[];for(const c of q){try{await pc.addIceCandidate(c)}catch(e){}}}
+async function call(id){const pc=mkpc(id);await pc.setLocalDescription(await pc.createOffer());send({t:"sig",to:id,d:{s:pc.localDescription}})}
+async function onSig(from,d){
+ if(!V.on||!V.stream)return;let pc=V.pcs[from];
+ try{
+  if(d.s){
+   if(d.s.type==="offer"){if(pc)hang(from);pc=mkpc(from);await pc.setRemoteDescription(d.s);await pc.setLocalDescription(await pc.createAnswer());send({t:"sig",to:from,d:{s:pc.localDescription}});await flush(pc)}
+   else if(pc){await pc.setRemoteDescription(d.s);await flush(pc)}
+  }else if(d.c&&pc){if(pc.remoteDescription)await pc.addIceCandidate(d.c);else(pc.q=pc.q||[]).push(d.c)}
+ }catch(e){}
+}
+
+/* ---------- telas ---------- */
+const seg=(k,opts)=>'<div class="seg">'+opts.map(([v,l])=>'<button class="chip '+(String(S.cfg[k])===String(v)?"on":"")+'" data-a="cfg" data-k="'+k+'" data-v="'+v+'">'+l+'</button>').join("")+'</div>';
+const hb=(a,t,dis)=>isH()?'<button class="btn p" data-a="'+a+'" '+(dis?"disabled":"")+'>'+t+'</button>':'';
+function roleBlock(){
+ const w=S.role;if(w===null||w===undefined)return "";
+ if(!U.rv)return '<button class="btn g" data-a="rv">Mostrar meu papel</button>';
+ return (w==="#"?'<div class="secret imp">Você é o IMPOSTOR<small>Descubra a palavra pelas dicas dos outros.</small></div>':'<div class="secret word"><small>A palavra é</small>'+esc(w)+'<small>Tema: '+esc(S.ct)+'</small></div>')+'<button class="btn g" data-a="rv">Ocultar meu papel</button>';
+}
+function voiceBox(){
+ const m=S.cfg.voice;if(m==="off")return "";
+ const how=m==="turns"?"Nas dicas só fala quem está na vez. Na discussão todos falam.":"Todos podem falar o tempo todo.";
+ if(!V.on)return '<div class="vbox"><b>Áudio do jogo</b><p class="mut">'+how+'</p><button class="btn p" data-a="vjoin">🎙 Entrar no áudio</button></div>';
+ const can=canTalk(S.me)&&!V.muted;
+ return '<div class="vbox"><b>Áudio do jogo · <span class="'+(can?"live":"mut")+'">'+(V.muted?"microfone mudo":can?"você está no ar":"microfone fechado agora")+'</span></b><div class="row"><button class="btn g" data-a="vmute">'+(V.muted?"Ligar microfone":"Silenciar")+'</button><button class="btn g" data-a="vleave">Sair do áudio</button></div></div>';
+}
+function game(){
+ const ps=S.players,onl=ps.filter(p=>p.on).length,inG=(S.pl||[]).includes(S.me);
+ const top='<p class="mut">Sala <b>'+esc(S.code)+'</b> · '+onl+' online'+(isH()?' · você é o anfitrião':'')+'</p>'+(U.err?'<p class="err">'+esc(U.err)+'</p>':'');
+ const vb=voiceBox();
+ switch(S.ph){
+ case "lobby":{
+  const names='<div class="ord">'+ps.map(p=>'<div class="'+(p.on?"":"off")+'">'+esc(p.n)+(p.id===S.me?" (você)":"")+(p.id===S.host?" · anfitrião":"")+(p.v?" 🎙":"")+(p.on?"":" · offline")+'</div>').join("")+'</div>';
+  const link=location.origin;
+  if(!isH()){const c=S.cfg;return top+'<h2>Sala de espera</h2><div class="code">'+esc(S.code)+'</div>'+names+'<div class="card mut">O anfitrião ajusta a partida.<br>Impostores: '+c.imps+' · Rodadas de dicas: '+c.hr+' · Discussão: '+(c.timer?c.timer+" min":"livre")+' · Última chance: '+(c.last?"sim":"não")+' · Áudio: '+({off:"desligado",turns:"por turnos",open:"aberto"})[c.voice]+'</div>'+vb}
+  const bad=onl<3||(S.cfg.imps===2&&onl<5);
+  return top+'<h2>Sala de espera</h2><p class="mut">Mande o link <b>'+esc(link)+'</b> e o código:</p><div class="code">'+esc(S.code)+'</div>'+names+
+  '<div class="set"><b>Tema</b><div class="grid">'+CAT.map(([k,e,n])=>'<button class="chip '+(S.cfg.theme===k?"on":"")+'" data-a="cfg" data-k="theme" data-v="'+k+'">'+e+" "+n+'</button>').join("")+'<button class="chip '+(S.cfg.theme==="all"?"on":"")+'" data-a="cfg" data-k="theme" data-v="all">🌍 Todos</button><button class="chip '+(S.cfg.theme==="random"?"on":"")+'" data-a="cfg" data-k="theme" data-v="random">🎲 Aleatório</button><button class="chip '+(S.cfg.theme==="custom"?"on":"")+'" data-a="cfg" data-k="theme" data-v="custom" style="grid-column:1/-1">✏️ Palavras do grupo</button></div></div>'+(S.cfg.theme==="custom"?'<textarea id="cw" placeholder="Uma palavra por linha ou separadas por vírgula (mínimo 2)">'+esc(S.cfg.custom)+'</textarea>':'')+
+  '<div class="set"><b>Impostores (2 só com 5 ou mais jogadores)</b>'+seg("imps",[[1,"1"],[2,"2"]])+'</div><div class="set"><b>Rodadas de dicas antes da votação</b>'+seg("hr",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"]])+'</div><div class="set"><b>Tempo de discussão</b>'+seg("timer",[[0,"Livre"],[1,"1 min"],[2,"2 min"],[3,"3 min"],[5,"5 min"]])+'</div><div class="set"><b>Última chance do impostor</b>'+seg("last",[[true,"Ligada"],[false,"Desligada"]])+'</div><div class="set"><b>Empate na votação</b>'+seg("tie",[["revote","Votar de novo"],["imp","Impostor vence"]])+'</div><div class="set"><b>Áudio dentro do jogo</b>'+seg("voice",[["off","Desligado"],["turns","Por turnos"],["open","Aberto"]])+'</div>'+vb+
+  (bad?'<p class="mut">Precisa de 3 jogadores online ou mais'+(S.cfg.imps===2?' (5 para 2 impostores)':'')+'.</p>':'')+hb("start","Começar rodada",bad)}
+ case "role":{
+  if(!inG)return top+'<h2>Rodada em andamento</h2><p class="mut">Você entra na próxima.</p>'+vb;
+  return top+'<h2>Seu papel</h2><p class="mut">Só você vê esta tela.</p>'+(U.rv?roleBlock():'<div class="secret hid"><span>Toque para revelar</span></div><button class="btn p" data-a="rv">Revelar meu papel</button>')+(S.ready?'<p class="mut">Pronto. Aguardando os outros ('+S.nready+' de '+S.pl.length+').</p>':'<button class="btn p" data-a="ready">Entendi, estou pronto</button>')+vb+hb("skipRole","Começar dicas agora")}
+ case "hint":{
+  const n=S.ord.length,pos=S.st%n,rd=Math.floor(S.st/n)+1,cur=S.ord[pos];
+  return top+'<h2>Hora das dicas</h2><p class="mut">Rodada de dicas '+rd+' de '+S.hr+'. '+(S.msg?esc(S.msg)+' ':'')+'Fale sua dica sem dizer a palavra.</p><div class="ord">'+S.ord.map((i,k)=>'<div class="'+(k===pos?"now":k<pos?"done":"")+'">'+(k===pos?"🎙 Fala agora: ":"")+esc(nm(i))+'</div>').join("")+'</div>'+(cur===S.me?'<button class="btn p" data-a="hint">Já dei minha dica</button>':'')+vb+(inG?roleBlock():'')+hb("skipHint","Pular quem está falando")}
+ case "disc":{
+  let poll="";
+  if(S.poll)poll='<div class="card"><b>Mais uma rodada de dicas?</b><p class="mut">Sim '+S.poll.yes+' · Não '+S.poll.no+' · '+S.poll.n+' online. A maioria decide.</p>'+(inG?'<div class="row"><button class="chip '+(S.poll.mine===true?"on":"")+'" data-a="moreVote" data-y="1" style="flex:1;text-align:center">Sim</button><button class="chip '+(S.poll.mine===false?"on":"")+'" data-a="moreVote" data-y="0" style="flex:1;text-align:center">Não</button></div>':'')+(isH()?'<button class="btn g" data-a="moreClose" style="margin-top:8px">Encerrar votação agora</button>':'')+'</div>';
+  else if(inG&&S.hr<10)poll='<button class="btn g" data-a="moreAsk">Pedir mais uma rodada de dicas</button>';
+  return top+'<h2>Discussão</h2><p class="mut">'+(S.msg?esc(S.msg)+' ':'')+'Quem foi vago? Quem copiou o outro?</p>'+(S.te?'<div class="timer" id="tm"></div>':'<div class="card mut">Tempo livre. O anfitrião inicia a votação.</div>')+poll+vb+(inG?roleBlock():'')+hb("toVote","Iniciar a votação")}
+ case "vote":{
+  if(!inG)return top+'<h2>Votação</h2><p class="mut">Aguarde a próxima rodada.</p>'+vb;
+  return top+'<h2>Quem é o impostor?</h2><p class="mut">'+(S.vr?"Desempate. ":"")+(S.ni>1?'Há '+S.ni+' impostores. Vote em quem você mais suspeita. ':'')+'Voto secreto, dá para mudar até todos votarem.</p><div class="grid">'+S.cd.filter(i=>i!==S.me).map(i=>'<button class="chip '+(S.myvote===i?"on":"")+'" data-a="vote" data-i="'+i+'">'+esc(nm(i))+'</button>').join("")+'</div><p class="mut">Votos registrados: '+S.nvote+' de '+S.pl.length+'</p>'+vb+hb("forceVote","Apurar agora com os votos que chegaram")}
+ case "tie":return top+'<h2>Empate!</h2><p>Empataram: <b>'+S.cd.map(i=>esc(nm(i))).join(", ")+'</b>.</p><p class="mut">Conversem mais um pouco e votem de novo, só entre os empatados.</p>'+vb+hb("revote","Votar de novo");
+ case "tally":{const mx=Math.max(1,...Object.values(S.cn));
+  return top+'<h2>Resultado da votação</h2>'+Object.keys(S.cn).map(i=>'<div class="bar '+(S.acc.includes(i)?"top":"")+'"><span>'+esc(nm(i))+'</span><i style="width:'+(Math.round(S.cn[i]/mx*50)||1)+'%"></i><b>'+S.cn[i]+'</b></div>').join("")+'<div class="card">'+(S.acc.length?'O grupo apontou <b>'+S.acc.map(i=>esc(nm(i))).join(" e ")+'</b>.':'<b>Empate.</b> O grupo não chegou a um nome.')+'</div>'+vb+hb("reveal","Revelar o impostor")}
+ case "guess":{const isI=S.im.includes(S.me);
+  return top+'<h2>Impostor descoberto!</h2><p>'+S.im.map(i=>esc(nm(i))).join(" e ")+(S.im.length>1?" eram os impostores":" era o impostor")+'.</p>'+(isI?(S.guessed?'<p class="mut">Chute enviado. Aguardando o resultado.</p>':'<p class="mut">Última chance: escreva a palavra secreta. Só uma tentativa.</p><input id="gs" placeholder="Qual era a palavra?" autocomplete="off" value="'+esc(U.gs)+'"><button class="btn p" data-a="guess">Chutar</button>'):'<p class="mut">Aguardando o chute final. Sem soprar a resposta!</p>')+vb}
+ case "final":{const gr=S.won==="g";
+  const why=!S.im.every(i=>S.acc.includes(i))?(S.tg?"A votação empatou e o impostor escapou.":"Pelo menos um impostor escapou."):(S.last?(gr?"Descobertos, e erraram a palavra"+(S.gt?" (chute: “"+esc(S.gt)+"”)":"")+".":"Descobertos, mas acertaram a palavra!"):"Todos os impostores foram descobertos.");
+  return '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p>'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct)+'</div><b style="font-size:24px">'+esc(S.wd)+'</b></div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')+'<button class="btn g" data-a="leave">Sair da sala</button>'}
+ }
+ return top;
+}
+function entry(){
+ return '<h1>Bluffin<i></i></h1><p class="mut">Todo mundo sabe a palavra. Menos um. Dê sua dica, desconfie de todos e descubra quem está blefando.</p><div class="set"><b>Seu nome</b><input id="nm" maxlength="14" placeholder="Como os amigos vão te ver" value="'+esc(U.name)+'"></div>'+(U.err?'<p class="err">'+esc(U.err)+'</p>':'')+'<button class="btn p" data-a="create" '+(U.busy?"disabled":"")+'>Criar sala</button><div class="row"><input id="cd" maxlength="4" placeholder="CÓDIGO" style="text-transform:uppercase;letter-spacing:4px;text-align:center" value="'+esc(U.code)+'"><button class="btn" data-a="join" style="width:auto" '+(U.busy?"disabled":"")+'>Entrar</button></div>';
+}
+function render(){
+ const sg=S?{...S,cfg:{...S.cfg,custom:0}}:null;
+ const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted]);
+ if(sig===lastSig)return;lastSig=sig;
+ const keep=document.activeElement&&document.activeElement.id;
+ $("app").innerHTML=U.scr==="game"&&S?game():entry();
+ clearInterval(tt);
+ if(S&&S.ph==="disc"&&S.te){const tick=()=>{const el=$("tm");if(!el)return;const l=Math.max(0,Math.ceil((S.te-(Date.now()+off))/1000));el.textContent=l?Math.floor(l/60)+":"+String(l%60).padStart(2,"0"):"Acabou o tempo";el.classList.toggle("end",!l)};tick();tt=setInterval(tick,500)}
+ if(S&&S.ph==="guess"&&$("gs"))$("gs").focus();
+}
+const rr=()=>{lastSig="";render()};
+
+/* ---------- eventos ---------- */
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a;
+ switch(a){
+  case "create":case "join":{const n=($("nm").value||"").trim();if(!n){U.err="Digite seu nome.";rr();break}U.name=n.slice(0,14);ls("bf_name",U.name);
+   if(a==="create")connect(true,"");else{const c=($("cd").value||"").trim().toUpperCase();if(!/^[A-Z]{4}$/.test(c)){U.err="Digite o código de 4 letras.";rr();break}connect(false,c)}break}
+  case "cfg":{let v=b.dataset.v;if(v==="true")v=true;else if(v==="false")v=false;else if(/^\d+$/.test(v))v=+v;send({t:"cfg",k:b.dataset.k,v});break}
+  case "start":case "lobby":case "ready":case "skipRole":case "hint":case "skipHint":case "moreAsk":case "moreClose":case "toVote":case "forceVote":case "revote":case "reveal":send({t:a});break;
+  case "moreVote":send({t:"moreVote",y:b.dataset.y==="1"});break;
+  case "vote":send({t:"vote",to:b.dataset.i});break;
+  case "guess":{const t=($("gs").value||"").trim();if(!t){$("gs").focus();break}send({t:"guess",text:t});break}
+  case "rv":U.rv=!U.rv;rr();break;
+  case "vjoin":voiceJoin();break;
+  case "vleave":voiceLeave();break;
+  case "vmute":V.muted=!V.muted;voiceSync();rr();break;
+  case "leave":voiceLeave();ss("bf_room",null);if(ws){ws.onclose=null;ws.close()}S=null;U.scr="entry";rr();break;
+ }
+});
+let cwT=null;
+document.addEventListener("input",e=>{
+ if(e.target.id==="cw"){clearTimeout(cwT);const v=e.target.value;cwT=setTimeout(()=>send({t:"cfg",k:"custom",v}),300)}
+ if(e.target.id==="gs")U.gs=e.target.value;
+});
+document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const t=e.target.id;
+ if(t==="nm"||t==="cd"){const b=document.querySelector('[data-a="'+(t==="cd"&&$("cd").value?"join":"create")+'"]');if(b)b.click()}
+ else if(t==="gs")document.querySelector('[data-a="guess"]').click()});
+const saved=ss("bf_room");if(saved&&U.name)connect(false,saved);else render();
+</script>
+</body>
+</html>
