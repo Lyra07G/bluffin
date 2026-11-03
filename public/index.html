@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bluffin</title>
+<meta name="description" content="Bluffin: jogo online de dedução e blefe para jogar com os amigos, com áudio dentro do jogo.">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bluffin">
+<meta property="og:title" content="Bluffin — ache o impostor">
+<meta property="og:description" content="Todo mundo sabe a palavra. Menos um. Jogue com os amigos pelo navegador.">
+<meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FF6A00'/%3E%3Ctext x='50' y='72' font-size='64' font-weight='800' text-anchor='middle' fill='%230A0A0A' font-family='sans-serif'%3EB%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
@@ -11,9 +19,13 @@
 :root{--bg:#0A0A0A;--sf:#171717;--ink:#FFFFFF;--mut:#A6A6A6;--or:#FF6A00;--ln:#2E2E2E;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:18px;line-height:1.4}
-#app{max-width:600px;margin:0 auto;padding:20px 18px 40px;min-height:100vh;display:flex;flex-direction:column;gap:14px}
-h1{font-size:76px;line-height:.9;margin:18px 0 4px;font-weight:800;letter-spacing:-3px}
+body{background:radial-gradient(1100px 650px at 50% -8%,#1c1206 0%,var(--bg) 62%) var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:18px;line-height:1.4}
+#app{max-width:600px;margin:0 auto;padding:20px 18px 40px;min-height:100vh;display:flex;flex-direction:column;gap:14px;position:relative}
+@media (min-width:760px){
+ body{padding:36px 0}
+ #app{min-height:auto;border:1px solid var(--ln);border-radius:28px;box-shadow:0 40px 90px -40px rgba(0,0,0,.85)}
+}
+h1{font-size:76px;line-height:.9;margin:18px 0 4px;font-weight:800;letter-spacing:-3px;background:linear-gradient(135deg,#fff 15%,#ffd9b3 65%,var(--or) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 h1 i{display:block;width:84px;height:10px;background:var(--or);border-radius:5px;margin-top:10px}
 h2{font-size:28px;line-height:1.1;margin:8px 0 0;font-weight:800;letter-spacing:-.5px}
 p{margin:0}.mut{color:var(--mut);font-size:16px}
@@ -51,11 +63,37 @@ textarea{min-height:90px;resize:vertical}
 .err{color:var(--or);font-weight:600}
 .vbox{border:2px solid var(--ln);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .live{color:var(--or);font-weight:800}
+.btn,.chip{transition:background .15s ease,transform .08s ease,box-shadow .15s ease,border-color .15s ease}
+.btn:active:not(:disabled),.chip:active{transform:scale(.97)}
+.btn.p{box-shadow:0 10px 24px -12px rgba(255,106,0,.65)}
+.brand{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.pro-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#FF6A00,#FFC24D);color:#0A0A0A;font-weight:800;font-size:13px;padding:7px 13px;border-radius:999px;border:none;cursor:pointer;white-space:nowrap;margin-top:30px;flex:0 0 auto}
+.pro-pill:active{transform:scale(.96)}
+.lock{opacity:.7;position:relative}
+.lock::after{content:"🔒 PRO";position:absolute;top:4px;right:6px;font-size:10px;font-weight:800;background:#0A0A0A;color:var(--or);padding:2px 6px;border-radius:8px}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;z-index:60}
+.modal{background:var(--sf);border:2px solid var(--ln);border-radius:22px;padding:22px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:12px}
+.modal ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--mut)}
+.adslot{border:2px dashed var(--ln);border-radius:16px;padding:16px;text-align:center;color:var(--mut);font-size:13px;font-weight:600;line-height:1.5}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#0A0A0A;flex:0 0 auto}
+.foot{text-align:center;color:var(--mut);font-size:13px;margin-top:4px}
+.chip.on{box-shadow:0 8px 18px -10px rgba(255,106,0,.55)}
+.swgrid{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+.swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg)}
+.chip.emoji{min-height:44px;text-align:center;font-size:20px;padding:6px}
+.siderail{position:fixed;top:50%;transform:translateY(-50%);width:170px;display:none}
+.siderail.l{left:calc(50% - 494px)}
+.siderail.r{right:calc(50% - 494px)}
+.siderail .adslot{min-height:480px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+@media (min-width:1180px){.siderail{display:block}}
 @media (prefers-reduced-motion:no-preference){.secret{animation:pop .18s ease-out}@keyframes pop{from{transform:scale(.96)}to{transform:scale(1)}}}
 </style>
 </head>
 <body>
+<div class="siderail l"><div class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
 <div id="app"></div>
+<div class="siderail r"><div class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -63,7 +101,25 @@ const ss=(k,v)=>{try{if(v===undefined)return sessionStorage.getItem(k)||"";v===n
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}};
 let pid=ss("bf_pid");if(!pid){pid=Math.random().toString(36).slice(2,10);ss("bf_pid",pid)}
 const CAT=[["des","🎨","Desenhos e animações"],["jog","🎮","Jogos e videogames"],["fil","🎬","Filmes e séries"],["per","🦸","Personagens"],["fut","⚽","Futebol"],["cel","⭐","Celebridades"],["ani","🐧","Animais"],["com","🍕","Comidas"],["lug","📍","Lugares"],["obj","🔑","Objetos"]];
-const U={scr:"entry",name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false};
+const U={scr:"entry",name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||""};
+const AV_CLR=["#FF6A00","#FF3D7F","#7C5CFF","#00C2A8","#2EA8FF","#FFD400","#5CD65C","#FF5C5C"];
+const AV_EM=["","😀","😎","🤖","🐱","🐶","🦊","🐸","🐼","🦄","👑","🎲","🔥","🧠","🕵️","🎭"];
+const av=(clr,em,n)=>'<div class="av" style="background:'+(clr||AV_CLR[0])+'">'+(em?esc(em):esc((n||"?").trim().slice(0,1).toUpperCase()))+'</div>';
+function profilePicker(){
+ const sw=AV_CLR.map(c=>'<button class="swatch'+(U.avc===c?" on":"")+'" data-a="avc" data-v="'+c+'" style="background:'+c+'" aria-label="Cor"></button>').join("");
+ const em=AV_EM.map(e=>'<button class="chip emoji'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'">'+(e||"Aa")+'</button>').join("");
+ return '<div class="set"><b>Seu perfil</b><div class="row" style="align-items:center;gap:12px">'+av(U.avc,U.avem,U.name)+'<div class="swgrid">'+sw+'</div></div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:8px">'+em+'</div></div>';
+}
+/* Slot reservado para anúncio. Ainda sem rede de anúncios conectada — quando decidir qual usar
+   (ex.: Google AdSense, Ezoic), troque o conteúdo deste <div> pelo snippet da rede escolhida. */
+function adSlot(id){return '<div class="adslot">📣 Espaço reservado para anúncio</div>'}
+function proModal(){
+ if(!U.modal)return "";
+ return '<div class="modal-ov"><div class="modal"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✨ Bluffin PRO</h2><button class="btn g" data-a="closeModal" style="width:auto;min-height:auto;padding:4px 10px;border-radius:10px">✕</button></div><p class="mut">Em breve: sem anúncios, temas exclusivos e mais opções pra sua sala.</p><ul><li>Sem anúncios</li><li>Temas e palavras exclusivas</li><li>Salas maiores</li><li>Cores e emblemas no perfil</li></ul><button class="btn p" data-a="closeModal">Entendi, já volto</button></div></div>'
+}
+function codeRow(){
+ return '<div class="row"><button class="btn g" data-a="copyCode" style="width:auto;flex:1">'+(U.copied?"Copiado!":"Copiar código")+'</button>'+(navigator.share?'<button class="btn g" data-a="share" style="width:auto;flex:1">Compartilhar</button>':'')+'</div>';
+}
 let S=null,ws=null,off=0,ICE=[{urls:"stun:stun.l.google.com:19302"}],tt=null,lastSig="",retry=0,wantCreate=false;
 const V={on:false,muted:false,stream:null,pcs:{},auds:{}};
 
@@ -72,7 +128,7 @@ function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
 function connect(create,code){
  U.busy=true;U.err="";wantCreate=create;rr();
  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
- ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code})};
+ ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code,clr:U.avc,em:U.avem})};
  ws.onmessage=e=>{const m=JSON.parse(e.data);
   if(m.t==="s"){off=m.now-Date.now();delete m.now;S=m;U.scr="game";U.busy=false;U.code=m.code;ss("bf_room",m.code);
    if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs=""}voiceSync();rr()}
@@ -152,13 +208,13 @@ function game(){
  const vb=voiceBox();
  switch(S.ph){
  case "lobby":{
-  const names='<div class="ord">'+ps.map(p=>'<div class="'+(p.on?"":"off")+'">'+esc(p.n)+(p.id===S.me?" (você)":"")+(p.id===S.host?" · anfitrião":"")+(p.v?" 🎙":"")+(p.on?"":" · offline")+'</div>').join("")+'</div>';
+  const names='<div class="ord">'+ps.map(p=>'<div class="'+(p.on?"":"off")+'">'+av(p.clr,p.em,p.n)+'<span>'+esc(p.n)+(p.id===S.me?" (você)":"")+(p.id===S.host?" · anfitrião":"")+(p.v?" 🎙":"")+(p.on?"":" · offline")+'</span></div>').join("")+'</div>';
   const link=location.origin;
-  if(!isH()){const c=S.cfg;return top+'<h2>Sala de espera</h2><div class="code">'+esc(S.code)+'</div>'+names+'<div class="card mut">O anfitrião ajusta a partida.<br>Impostores: '+c.imps+' · Rodadas de dicas: '+c.hr+' · Discussão: '+(c.timer?c.timer+" min":"livre")+' · Última chance: '+(c.last?"sim":"não")+' · Áudio: '+({off:"desligado",turns:"por turnos",open:"aberto"})[c.voice]+'</div>'+vb}
+  if(!isH()){const c=S.cfg;return top+'<h2>Sala de espera</h2><div class="code">'+esc(S.code)+'</div>'+codeRow()+names+'<div class="card mut">O anfitrião ajusta a partida.<br>Impostores: '+c.imps+' · Rodadas de dicas: '+c.hr+' · Discussão: '+(c.timer?c.timer+" min":"livre")+' · Última chance: '+(c.last?"sim":"não")+' · Áudio: '+({off:"desligado",turns:"por turnos",open:"aberto"})[c.voice]+'</div>'+vb+adSlot("lobby")}
   const bad=onl<3||(S.cfg.imps===2&&onl<5);
-  return top+'<h2>Sala de espera</h2><p class="mut">Mande o link <b>'+esc(link)+'</b> e o código:</p><div class="code">'+esc(S.code)+'</div>'+names+
-  '<div class="set"><b>Tema</b><div class="grid">'+CAT.map(([k,e,n])=>'<button class="chip '+(S.cfg.theme===k?"on":"")+'" data-a="cfg" data-k="theme" data-v="'+k+'">'+e+" "+n+'</button>').join("")+'<button class="chip '+(S.cfg.theme==="all"?"on":"")+'" data-a="cfg" data-k="theme" data-v="all">🌍 Todos</button><button class="chip '+(S.cfg.theme==="random"?"on":"")+'" data-a="cfg" data-k="theme" data-v="random">🎲 Aleatório</button><button class="chip '+(S.cfg.theme==="custom"?"on":"")+'" data-a="cfg" data-k="theme" data-v="custom" style="grid-column:1/-1">✏️ Palavras do grupo</button></div></div>'+(S.cfg.theme==="custom"?'<textarea id="cw" placeholder="Uma palavra por linha ou separadas por vírgula (mínimo 2)">'+esc(S.cfg.custom)+'</textarea>':'')+
-  '<div class="set"><b>Impostores (2 só com 5 ou mais jogadores)</b>'+seg("imps",[[1,"1"],[2,"2"]])+'</div><div class="set"><b>Rodadas de dicas antes da votação</b>'+seg("hr",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"]])+'</div><div class="set"><b>Tempo de discussão</b>'+seg("timer",[[0,"Livre"],[1,"1 min"],[2,"2 min"],[3,"3 min"],[5,"5 min"]])+'</div><div class="set"><b>Última chance do impostor</b>'+seg("last",[[true,"Ligada"],[false,"Desligada"]])+'</div><div class="set"><b>Empate na votação</b>'+seg("tie",[["revote","Votar de novo"],["imp","Impostor vence"]])+'</div><div class="set"><b>Áudio dentro do jogo</b>'+seg("voice",[["off","Desligado"],["turns","Por turnos"],["open","Aberto"]])+'</div>'+vb+
+  return top+'<h2>Sala de espera</h2><p class="mut">Mande o link <b>'+esc(link)+'</b> e o código:</p><div class="code">'+esc(S.code)+'</div>'+codeRow()+names+
+  '<div class="set"><b>Tema</b><div class="grid">'+CAT.map(([k,e,n])=>'<button class="chip '+(S.cfg.theme===k?"on":"")+'" data-a="cfg" data-k="theme" data-v="'+k+'">'+e+" "+n+'</button>').join("")+'<button class="chip '+(S.cfg.theme==="all"?"on":"")+'" data-a="cfg" data-k="theme" data-v="all">🌍 Todos</button><button class="chip '+(S.cfg.theme==="random"?"on":"")+'" data-a="cfg" data-k="theme" data-v="random">🎲 Aleatório</button><button class="chip '+(S.cfg.theme==="custom"?"on":"")+'" data-a="cfg" data-k="theme" data-v="custom" style="grid-column:1/-1">✏️ Palavras do grupo</button>'+'</div></div>'+(S.cfg.theme==="custom"?'<textarea id="cw" placeholder="Uma palavra por linha ou separadas por vírgula (mínimo 2)">'+esc(U.cw!==null?U.cw:S.cfg.custom)+'</textarea>':'')+
+  '<div class="set"><b>Impostores (2 só com 5 ou mais jogadores)</b>'+seg("imps",[[1,"1"],[2,"2"]])+'</div><div class="set"><b>Rodadas de dicas antes da votação</b>'+seg("hr",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"]])+'</div><div class="set"><b>Tempo de discussão</b>'+seg("timer",[[0,"Livre"],[1,"1 min"],[2,"2 min"],[3,"3 min"],[5,"5 min"]])+'</div><div class="set"><b>Última chance do impostor</b>'+seg("last",[[true,"Ligada"],[false,"Desligada"]])+'</div><div class="set"><b>Empate na votação</b>'+seg("tie",[["revote","Votar de novo"],["imp","Impostor vence"]])+'</div><div class="set"><b>Áudio dentro do jogo</b>'+seg("voice",[["off","Desligado"],["turns","Por turnos"],["open","Aberto"]])+'</div>'+vb+adSlot("lobby")+
   (bad?'<p class="mut">Precisa de 3 jogadores online ou mais'+(S.cfg.imps===2?' (5 para 2 impostores)':'')+'.</p>':'')+hb("start","Começar rodada",bad)}
  case "role":{
   if(!inG)return top+'<h2>Rodada em andamento</h2><p class="mut">Você entra na próxima.</p>'+vb;
@@ -181,19 +237,20 @@ function game(){
   return top+'<h2>Impostor descoberto!</h2><p>'+S.im.map(i=>esc(nm(i))).join(" e ")+(S.im.length>1?" eram os impostores":" era o impostor")+'.</p>'+(isI?(S.guessed?'<p class="mut">Chute enviado. Aguardando o resultado.</p>':'<p class="mut">Última chance: escreva a palavra secreta. Só uma tentativa.</p><input id="gs" placeholder="Qual era a palavra?" autocomplete="off" value="'+esc(U.gs)+'"><button class="btn p" data-a="guess">Chutar</button>'):'<p class="mut">Aguardando o chute final. Sem soprar a resposta!</p>')+vb}
  case "final":{const gr=S.won==="g";
   const why=!S.im.every(i=>S.acc.includes(i))?(S.tg?"A votação empatou e o impostor escapou.":"Pelo menos um impostor escapou."):(S.last?(gr?"Descobertos, e erraram a palavra"+(S.gt?" (chute: “"+esc(S.gt)+"”)":"")+".":"Descobertos, mas acertaram a palavra!"):"Todos os impostores foram descobertos.");
-  return '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p>'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct)+'</div><b style="font-size:24px">'+esc(S.wd)+'</b></div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')+'<button class="btn g" data-a="leave">Sair da sala</button>'}
+  return '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p>'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct)+'</div><b style="font-size:24px">'+esc(S.wd)+'</b></div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+adSlot("final")+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')+'<button class="btn g" data-a="leave">Sair da sala</button>'}
  }
  return top;
 }
 function entry(){
- return '<h1>Bluffin<i></i></h1><p class="mut">Todo mundo sabe a palavra. Menos um. Dê sua dica, desconfie de todos e descubra quem está blefando.</p><div class="set"><b>Seu nome</b><input id="nm" maxlength="14" placeholder="Como os amigos vão te ver" value="'+esc(U.name)+'"></div>'+(U.err?'<p class="err">'+esc(U.err)+'</p>':'')+'<button class="btn p" data-a="create" '+(U.busy?"disabled":"")+'>Criar sala</button><div class="row"><input id="cd" maxlength="4" placeholder="CÓDIGO" style="text-transform:uppercase;letter-spacing:4px;text-align:center" value="'+esc(U.code)+'"><button class="btn" data-a="join" style="width:auto" '+(U.busy?"disabled":"")+'>Entrar</button></div>';
+ return '<div class="brand"><h1>Bluffin<i></i></h1><button class="pro-pill" data-a="pro">✨ PRO</button></div><p class="mut">Todo mundo sabe a palavra. Menos um. Dê sua dica, desconfie de todos e descubra quem está blefando.</p><div class="set"><b>Seu nome</b><input id="nm" maxlength="14" placeholder="Como os amigos vão te ver" value="'+esc(U.name)+'"></div>'+profilePicker()+(U.err?'<p class="err">'+esc(U.err)+'</p>':'')+'<button class="btn p" data-a="create" '+(U.busy?"disabled":"")+'>Criar sala</button><div class="row"><input id="cd" maxlength="4" placeholder="CÓDIGO" style="text-transform:uppercase;letter-spacing:4px;text-align:center" value="'+esc(U.code)+'"><button class="btn" data-a="join" style="width:auto" '+(U.busy?"disabled":"")+'>Entrar</button></div>'+adSlot("entry")+'<p class="foot">Bluffin · feito pra jogar com os amigos</p>';
 }
 function render(){
  const sg=S?{...S,cfg:{...S.cfg,custom:0}}:null;
- const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted]);
+ const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.pro]);
  if(sig===lastSig)return;lastSig=sig;
- const keep=document.activeElement&&document.activeElement.id;
- $("app").innerHTML=U.scr==="game"&&S?game():entry();
+ const ae=document.activeElement,keep=ae&&ae.id,keepSel=(keep&&typeof ae.selectionStart==="number")?[ae.selectionStart,ae.selectionEnd]:null;
+ $("app").innerHTML=(U.scr==="game"&&S?game():entry())+proModal();
+ if(keep){const el=$(keep);if(el){el.focus();if(keepSel&&typeof el.setSelectionRange==="function"){try{el.setSelectionRange(keepSel[0],keepSel[1])}catch(e){}}}}
  clearInterval(tt);
  if(S&&S.ph==="disc"&&S.te){const tick=()=>{const el=$("tm");if(!el)return;const l=Math.max(0,Math.ceil((S.te-(Date.now()+off))/1000));el.textContent=l?Math.floor(l/60)+":"+String(l%60).padStart(2,"0"):"Acabou o tempo";el.classList.toggle("end",!l)};tick();tt=setInterval(tick,500)}
  if(S&&S.ph==="guess"&&$("gs"))$("gs").focus();
@@ -212,6 +269,15 @@ document.addEventListener("click",e=>{
   case "vote":send({t:"vote",to:b.dataset.i});break;
   case "guess":{const t=($("gs").value||"").trim();if(!t){$("gs").focus();break}send({t:"guess",text:t});break}
   case "rv":U.rv=!U.rv;rr();break;
+  case "avc":U.avc=b.dataset.v;ls("bf_avc",U.avc);rr();break;
+  case "avem":U.avem=b.dataset.v;ls("bf_avem",U.avem);rr();break;
+  case "pro":U.modal="pro";rr();break;
+  case "closeModal":U.modal=null;rr();break;
+  case "copyCode":{if(!S)break;const ok=()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)};
+   if(navigator.clipboard)navigator.clipboard.writeText(S.code).then(ok).catch(()=>{});else ok();break}
+  case "share":{if(!S)break;const text="Entra na minha sala de Bluffin! Código: "+S.code,url=location.origin;
+   if(navigator.share)navigator.share({title:"Bluffin",text,url}).catch(()=>{});
+   else if(navigator.clipboard){navigator.clipboard.writeText(text+" — "+url).then(()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)}).catch(()=>{})}break}
   case "vjoin":voiceJoin();break;
   case "vleave":voiceLeave();break;
   case "vmute":V.muted=!V.muted;voiceSync();rr();break;
@@ -220,7 +286,7 @@ document.addEventListener("click",e=>{
 });
 let cwT=null;
 document.addEventListener("input",e=>{
- if(e.target.id==="cw"){clearTimeout(cwT);const v=e.target.value;cwT=setTimeout(()=>send({t:"cfg",k:"custom",v}),300)}
+ if(e.target.id==="cw"){U.cw=e.target.value;clearTimeout(cwT);const v=e.target.value;cwT=setTimeout(()=>send({t:"cfg",k:"custom",v}),300)}
  if(e.target.id==="gs")U.gs=e.target.value;
 });
 document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const t=e.target.id;
