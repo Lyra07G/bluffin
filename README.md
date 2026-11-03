@@ -34,7 +34,6 @@ O áudio usa WebRTC direto entre os jogadores. Na maioria das redes funciona. Se
 
 ## Preparado para monetização (ainda não ativado)
 A interface já tem os espaços reservados, mas nada está ligado a uma rede de anúncios ou pagamento de verdade:
-- Botão **"✨ PRO"** no topo e um tema bloqueado (🔥 Temas picantes) no lobby abrem um modal de "em breve". É só um aviso, não vende nada ainda.
 - Blocos `<div class="adslot">` (função `adSlot()` no `public/index.html`) aparecem na tela inicial, na sala de espera e no placar final — nunca durante uma rodada em andamento, pra não atrapalhar o jogo. Troque o conteúdo desse `<div>` pelo snippet da rede de anúncios que você escolher (ex. Google AdSense).
 - `localStorage.bf_pro` controla se alguém é "PRO" (ainda só no navegador, sem backend real). Defina `bf_pro=1` no DevTools pra testar como fica a tela sem o selo PRO e sem o tema bloqueado.
 
