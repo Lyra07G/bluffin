@@ -25,7 +25,7 @@ body{background:radial-gradient(1100px 650px at 50% -8%,#1c1206 0%,var(--bg) 62%
  body{padding:36px 0}
  #app{min-height:auto;border:1px solid var(--ln);border-radius:28px;box-shadow:0 40px 90px -40px rgba(0,0,0,.85)}
 }
-h1{font-size:76px;line-height:.9;margin:18px 0 4px;font-weight:800;letter-spacing:-3px;background:linear-gradient(135deg,#fff 15%,#ffd9b3 65%,var(--or) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{font-size:clamp(52px,14vw,76px);line-height:.9;margin:18px 0 4px;font-weight:800;letter-spacing:-3px;background:linear-gradient(135deg,#fff 15%,#ffd9b3 65%,var(--or) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 h1 i{display:block;width:84px;height:10px;background:var(--or);border-radius:5px;margin-top:10px}
 h2{font-size:28px;line-height:1.1;margin:8px 0 0;font-weight:800;letter-spacing:-.5px}
 p{margin:0}.mut{color:var(--mut);font-size:16px}
@@ -50,7 +50,7 @@ textarea{min-height:90px;resize:vertical}
 .secret.word{background:#fff;color:#0A0A0A;font-size:38px;letter-spacing:-1px}
 .secret.imp{background:var(--or);color:#0A0A0A;font-size:36px;letter-spacing:-1px}
 .secret small{font-size:16px;font-weight:600}
-.code{font-size:60px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--or)}
+.code{font-size:clamp(40px,11vw,60px);font-weight:800;letter-spacing:clamp(4px,2vw,10px);text-align:center;color:var(--or)}
 .ord{display:flex;flex-direction:column;gap:8px}
 .ord div{display:flex;gap:10px;align-items:center;padding:11px 14px;border:2px solid var(--ln);border-radius:14px;background:var(--sf)}
 .ord .now{border-color:var(--or);background:var(--or);color:#0A0A0A;font-weight:800;font-size:22px}
@@ -101,7 +101,7 @@ const ss=(k,v)=>{try{if(v===undefined)return sessionStorage.getItem(k)||"";v===n
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}};
 let pid=ss("bf_pid");if(!pid){pid=Math.random().toString(36).slice(2,10);ss("bf_pid",pid)}
 const CAT=[["des","🎨","Desenhos e animações"],["jog","🎮","Jogos e videogames"],["fil","🎬","Filmes e séries"],["per","🦸","Personagens"],["fut","⚽","Futebol"],["cel","⭐","Celebridades"],["ani","🐧","Animais"],["com","🍕","Comidas"],["lug","📍","Lugares"],["obj","🔑","Objetos"]];
-const U={scr:"entry",name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||""};
+const U={scr:"entry",name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,copiedInvite:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||""};
 const AV_CLR=["#FF6A00","#FF3D7F","#7C5CFF","#00C2A8","#2EA8FF","#FFD400","#5CD65C","#FF5C5C"];
 const AV_EM=["","😀","😎","🤖","🐱","🐶","🦊","🐸","🐼","🦄","👑","🎲","🔥","🧠","🕵️","🎭"];
 const av=(clr,em,n)=>'<div class="av" style="background:'+(clr||AV_CLR[0])+'">'+(em?esc(em):esc((n||"?").trim().slice(0,1).toUpperCase()))+'</div>';
@@ -112,13 +112,17 @@ function profilePicker(){
 }
 /* Slot reservado para anúncio. Ainda sem rede de anúncios conectada — quando decidir qual usar
    (ex.: Google AdSense, Ezoic), troque o conteúdo deste <div> pelo snippet da rede escolhida. */
-function adSlot(id){return '<div class="adslot">📣 Espaço reservado para anúncio</div>'}
+function adSlot(id){return '<div class="adslot" data-slot="'+esc(id||"")+'">📣 Espaço reservado para anúncio</div>'}
 function proModal(){
  if(!U.modal)return "";
  return '<div class="modal-ov"><div class="modal"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✨ Bluffin PRO</h2><button class="btn g" data-a="closeModal" style="width:auto;min-height:auto;padding:4px 10px;border-radius:10px">✕</button></div><p class="mut">Em breve: sem anúncios, temas exclusivos e mais opções pra sua sala.</p><ul><li>Sem anúncios</li><li>Temas e palavras exclusivas</li><li>Salas maiores</li><li>Cores e emblemas no perfil</li></ul><button class="btn p" data-a="closeModal">Entendi, já volto</button></div></div>'
 }
 function codeRow(){
- return '<div class="row"><button class="btn g" data-a="copyCode" style="width:auto;flex:1">'+(U.copied?"Copiado!":"Copiar código")+'</button>'+(navigator.share?'<button class="btn g" data-a="share" style="width:auto;flex:1">Compartilhar</button>':'')+'</div>';
+ const canShare=!!navigator.share;
+ const right=canShare
+   ?'<button class="btn g" data-a="share" style="width:auto;flex:1">Compartilhar</button>'
+   :'<button class="btn g" data-a="copyInvite" style="width:auto;flex:1">'+(U.copiedInvite?"Copiado!":"Copiar convite")+'</button>';
+ return '<div class="row"><button class="btn g" data-a="copyCode" style="width:auto;flex:1">'+(U.copied?"Copiado!":"Copiar código")+'</button>'+right+'</div>';
 }
 let S=null,ws=null,off=0,ICE=[{urls:"stun:stun.l.google.com:19302"}],tt=null,lastSig="",retry=0,wantCreate=false;
 const V={on:false,muted:false,stream:null,pcs:{},auds:{}};
@@ -129,12 +133,14 @@ function connect(create,code){
  U.busy=true;U.err="";wantCreate=create;rr();
  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
  ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code,clr:U.avc,em:U.avem})};
- ws.onmessage=e=>{const m=JSON.parse(e.data);
-  if(m.t==="s"){off=m.now-Date.now();delete m.now;S=m;U.scr="game";U.busy=false;U.code=m.code;ss("bf_room",m.code);
+ ws.onmessage=e=>{
+  let m;try{m=JSON.parse(e.data)}catch(_){return}
+  if(m.t==="s"){off=m.now-Date.now();delete m.now;S=m;U.scr="game";U.busy=false;U.err="";U.code=m.code;ss("bf_room",m.code);
    if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs=""}voiceSync();rr()}
   else if(m.t==="ice")ICE=m.ice;
   else if(m.t==="sig")onSig(m.from,m.d);
-  else if(m.t==="err"){U.err=m.m;U.busy=false;U.scr="entry";S=null;ss("bf_room",null);ws.onclose=null;rr()}};
+  else if(m.t==="err"){U.err=m.m;U.busy=false;U.scr="entry";S=null;ss("bf_room",null);try{ws.onclose=null;ws.close()}catch(_){};rr()}
+ };
  ws.onclose=()=>{if(U.scr==="game"&&ss("bf_room")){const code=ss("bf_room");setTimeout(()=>connect(false,code),Math.min(5000,1000*(++retry)))}else{U.busy=false;rr()}};
 }
 const me=()=>S&&S.players.find(p=>p.id===S.me);
@@ -161,6 +167,9 @@ function hang(id){const pc=V.pcs[id];if(pc){pc.onicecandidate=null;pc.close();de
 function voiceSync(){
  if(!S)return;
  if(V.on&&S.cfg.voice==="off"){voiceLeave();return}
+ // FIX: se reconectamos e o servidor esqueceu nosso estado de voz, reenvia
+ const self=S.players.find(p=>p.id===S.me);
+ if(V.on&&self&&!self.v)send({t:"voice",on:true});
  if(V.stream)V.stream.getAudioTracks().forEach(t=>t.enabled=!V.muted&&canTalk(S.me));
  S.players.forEach(p=>{if(p.id===S.me)return;
   if(V.on&&p.v&&!V.pcs[p.id]&&S.me<p.id)call(p.id);
@@ -176,7 +185,13 @@ function mkpc(id){
  return pc;
 }
 async function flush(pc){const q=pc.q||[];pc.q=[];for(const c of q){try{await pc.addIceCandidate(c)}catch(e){}}}
-async function call(id){const pc=mkpc(id);await pc.setLocalDescription(await pc.createOffer());send({t:"sig",to:id,d:{s:pc.localDescription}})}
+async function call(id){
+ try{
+  const pc=mkpc(id);
+  await pc.setLocalDescription(await pc.createOffer());
+  send({t:"sig",to:id,d:{s:pc.localDescription}});
+ }catch(e){console.warn("offer falhou",id,e);hang(id)}
+}
 async function onSig(from,d){
  if(!V.on||!V.stream)return;let pc=V.pcs[from];
  try{
@@ -193,7 +208,7 @@ const hb=(a,t,dis)=>isH()?'<button class="btn p" data-a="'+a+'" '+(dis?"disabled
 function roleBlock(){
  const w=S.role;if(w===null||w===undefined)return "";
  if(!U.rv)return '<button class="btn g" data-a="rv">Mostrar meu papel</button>';
- return (w==="#"?'<div class="secret imp">Você é o IMPOSTOR<small>Descubra a palavra pelas dicas dos outros.</small></div>':'<div class="secret word"><small>A palavra é</small>'+esc(w)+'<small>Tema: '+esc(S.ct)+'</small></div>')+'<button class="btn g" data-a="rv">Ocultar meu papel</button>';
+ return (w==="#"?'<div class="secret imp">Você é o IMPOSTOR<small>Descubra a palavra pelas dicas dos outros.</small></div>':'<div class="secret word"><small>A palavra é</small>'+esc(w)+'<small>Tema: '+esc(S.ct||"")+'</small></div>')+'<button class="btn g" data-a="rv">Ocultar meu papel</button>';
 }
 function voiceBox(){
  const m=S.cfg.voice;if(m==="off")return "";
@@ -237,7 +252,7 @@ function game(){
   return top+'<h2>Impostor descoberto!</h2><p>'+S.im.map(i=>esc(nm(i))).join(" e ")+(S.im.length>1?" eram os impostores":" era o impostor")+'.</p>'+(isI?(S.guessed?'<p class="mut">Chute enviado. Aguardando o resultado.</p>':'<p class="mut">Última chance: escreva a palavra secreta. Só uma tentativa.</p><input id="gs" placeholder="Qual era a palavra?" autocomplete="off" value="'+esc(U.gs)+'"><button class="btn p" data-a="guess">Chutar</button>'):'<p class="mut">Aguardando o chute final. Sem soprar a resposta!</p>')+vb}
  case "final":{const gr=S.won==="g";
   const why=!S.im.every(i=>S.acc.includes(i))?(S.tg?"A votação empatou e o impostor escapou.":"Pelo menos um impostor escapou."):(S.last?(gr?"Descobertos, e erraram a palavra"+(S.gt?" (chute: “"+esc(S.gt)+"”)":"")+".":"Descobertos, mas acertaram a palavra!"):"Todos os impostores foram descobertos.");
-  return '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p>'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct)+'</div><b style="font-size:24px">'+esc(S.wd)+'</b></div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+adSlot("final")+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')+'<button class="btn g" data-a="leave">Sair da sala</button>'}
+  return '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p>'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct||"")+'</div><b style="font-size:24px">'+esc(S.wd)+'</b></div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+adSlot("final")+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')+'<button class="btn g" data-a="leave">Sair da sala</button>'}
  }
  return top;
 }
@@ -246,7 +261,7 @@ function entry(){
 }
 function render(){
  const sg=S?{...S,cfg:{...S.cfg,custom:0}}:null;
- const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.pro]);
+ const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.copiedInvite,U.pro]);
  if(sig===lastSig)return;lastSig=sig;
  const ae=document.activeElement,keep=ae&&ae.id,keepSel=(keep&&typeof ae.selectionStart==="number")?[ae.selectionStart,ae.selectionEnd]:null;
  $("app").innerHTML=(U.scr==="game"&&S?game():entry())+proModal();
@@ -275,9 +290,12 @@ document.addEventListener("click",e=>{
   case "closeModal":U.modal=null;rr();break;
   case "copyCode":{if(!S)break;const ok=()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)};
    if(navigator.clipboard)navigator.clipboard.writeText(S.code).then(ok).catch(()=>{});else ok();break}
+  case "copyInvite":{if(!S)break;const text="Entra na minha sala de Bluffin! Código: "+S.code+" — "+location.origin;
+   const ok=()=>{U.copiedInvite=true;rr();setTimeout(()=>{U.copiedInvite=false;rr()},1500)};
+   if(navigator.clipboard)navigator.clipboard.writeText(text).then(ok).catch(()=>{});else ok();break}
   case "share":{if(!S)break;const text="Entra na minha sala de Bluffin! Código: "+S.code,url=location.origin;
    if(navigator.share)navigator.share({title:"Bluffin",text,url}).catch(()=>{});
-   else if(navigator.clipboard){navigator.clipboard.writeText(text+" — "+url).then(()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)}).catch(()=>{})}break}
+   else if(navigator.clipboard){navigator.clipboard.writeText(text+" — "+url).then(()=>{U.copiedInvite=true;rr();setTimeout(()=>{U.copiedInvite=false;rr()},1500)}).catch(()=>{})}break}
   case "vjoin":voiceJoin();break;
   case "vleave":voiceLeave();break;
   case "vmute":V.muted=!V.muted;voiceSync();rr();break;

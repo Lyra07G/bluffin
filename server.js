@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
 if (process.env.TURN_URL) ICE.push({ urls: process.env.TURN_URL.split(","), username: process.env.TURN_USER || "", credential: process.env.TURN_PASS || "" });
 
-// paleta de perfil: lista fechada, nunca aceitar cor/emoji livre do cliente (evita CSS/payload malicioso)
+// Paleta de perfil: lista fechada, nunca aceitar cor/emoji livre do cliente (evita CSS/payload malicioso).
 const AV_CLR = ["#FF6A00", "#FF3D7F", "#7C5CFF", "#00C2A8", "#2EA8FF", "#FFD400", "#5CD65C", "#FF5C5C"];
 const AV_EM = ["", "😀", "😎", "🤖", "🐱", "🐶", "🦊", "🐸", "🐼", "🦄", "👑", "🎲", "🔥", "🧠", "🕵️", "🎭"];
 const rnd = n => crypto.randomInt(n);
@@ -38,7 +38,11 @@ const CFG_RULES = {
 
 // ---------- servidor HTTP (arquivos estáticos) ----------
 const PUB = path.join(__dirname, "public");
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon" };
+const MIME = {
+  ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css",
+  ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+  ".json": "application/json", ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8"
+};
 const server = http.createServer((req, res) => {
   let u = "/";
   try { u = decodeURIComponent((req.url || "/").split("?")[0]); } catch (e) { }
@@ -48,7 +52,11 @@ const server = http.createServer((req, res) => {
   if (!f.startsWith(PUB)) { res.writeHead(403); return res.end(); }
   fs.readFile(f, (e, d) => {
     if (e) { res.writeHead(404); return res.end("Não encontrado"); }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "application/octet-stream", "Cache-Control": "no-cache" });
+    const isHtml = path.extname(f) === ".html";
+    res.writeHead(200, {
+      "Content-Type": MIME[path.extname(f)] || "application/octet-stream",
+      "Cache-Control": isHtml ? "no-cache" : "public, max-age=3600"
+    });
     res.end(d);
   });
 });
@@ -67,7 +75,7 @@ function newRoom() {
   rooms.set(code, room); return room;
 }
 const online = (room, id) => { const p = room.players.get(id); return !!(p && p.on); };
-const send = (p, m) => { if (p.ws && p.ws.readyState === 1) p.ws.send(JSON.stringify(m)); };
+const send = (p, m) => { try { if (p.ws && p.ws.readyState === 1) p.ws.send(JSON.stringify(m)); } catch (e) { } };
 
 function pickWord(room) {
   const c = room.cfg; let words, cat;
@@ -119,7 +127,8 @@ function resolveVotes(room) {
     if (above.length + tied.length === need) acc = s.slice(0, need); else tie = { above, tied, need: need - above.length };
   }
   if (tie && !g.vr && room.cfg.tie === "revote") { g.ph = "tie"; g.cd = tie.tied; g.nd = tie.need; g.fx = tie.above; }
-  else { g.acc = tie ? [] : g.fx.concat(acc); g.tg = tie ? 1 : 0; g.ph = "tally"; }
+  // FIX: preserva g.fx (quem já estava confirmado) se o revote empatar de novo
+  else { g.acc = tie ? g.fx : g.fx.concat(acc); g.tg = tie ? 1 : 0; g.ph = "tally"; }
 }
 function finish(room, ok, gt) {
   const g = room.g, im = impsOf(g), caught = im.length > 0 && im.every(i => g.acc.includes(i));
@@ -153,15 +162,19 @@ function view(room, pid) {
   const g = room.g, isH = pid === room.hostId, inG = g.pl.includes(pid);
   const cfg = { ...room.cfg }; if (!isH) delete cfg.custom;
   const live = g.pl.filter(i => online(room, i));
+  // FIX: não vaza a categoria para o impostor (só no final, quando a partida já acabou)
+  const isImp = inG && g.rl && g.rl[pid] === "#";
+  const showCat = !isImp || g.ph === "final";
   const v = {
     t: "s", me: pid, now: Date.now(), code: room.code, host: room.hostId, cfg,
     players: [...room.players.values()].map(p => ({ id: p.id, n: p.name, on: p.on, v: p.v, clr: p.clr, em: p.em })),
-    ph: g.ph, ri: g.ri, pl: g.pl, nm: g.nm, ord: g.ord, st: g.st, hr: g.hr, ni: g.ni, ct: g.cat, te: g.te, vr: g.vr,
+    ph: g.ph, ri: g.ri, pl: g.pl, nm: g.nm, ord: g.ord, st: g.st, hr: g.hr, ni: g.ni, te: g.te, vr: g.vr,
     cd: g.cd, sc: g.sc, msg: g.msg || "", role: inG && g.rl ? g.rl[pid] : null,
     ready: !!(g.rd && g.rd[pid]), nready: g.rd ? g.pl.filter(i => g.rd[i]).length : 0,
     nvote: g.vt ? g.pl.filter(i => g.vt[i]).length : 0, myvote: g.vt ? g.vt[pid] || null : null,
     guessed: g.gx ? g.gx[pid] !== undefined : false
   };
+  if (showCat) v.ct = g.cat;
   if (["tie", "tally", "final"].includes(g.ph)) { v.cn = g.cn; v.acc = g.acc; v.tg = g.tg; }
   if (g.ph === "guess" || g.ph === "final") v.im = g.im;
   if (g.ph === "final") { v.won = g.won; v.wd = g.word; v.gt = g.gt; v.last = g.last; }
@@ -211,15 +224,17 @@ function act(room, me, m) {
   tick(room); broadcast(room);
 }
 
-wss.on("error", () => {}); // nunca deixar um erro no servidor WS derrubar o processo
+wss.on("error", () => {});
 
 wss.on("connection", ws => {
   let room = null, me = null, bucket = 30, lastRefill = Date.now();
-  ws.on("error", () => {}); // idem por conexão: um frame ruim de um cliente não pode matar o servidor
+  ws.isAlive = true;
+  ws.on("pong", () => { ws.isAlive = true; });
+  ws.on("error", () => {});
   ws.on("message", raw => {
     const now = Date.now();
     bucket = Math.min(30, bucket + (now - lastRefill) / 1000 * 30); lastRefill = now;
-    if (bucket < 1) return; // limite simples contra flood: ~30 mensagens/seg por conexão
+    if (bucket < 1) return;
     bucket -= 1;
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || typeof m.t !== "string") return;
@@ -233,11 +248,12 @@ wss.on("connection", ws => {
       else { r = rooms.get(String(m.code || "").toUpperCase().slice(0, 4)); if (!r) return ws.send(JSON.stringify({ t: "err", m: "Sala não encontrada. Confira o código." })); }
       let p = r.players.get(pid);
       if (!p) {
-        if (r.players.size >= 12) return ws.send(JSON.stringify({ t: "err", m: "Sala cheia (máximo de 12)." }));
-        p = { id: pid, name, ws: null, on: false, v: false, clr, em }; r.players.set(pid, p);
+        // FIX: limite conta só jogadores online (antes contava fantasmas offline)
+        const onlineCount = [...r.players.values()].filter(q => q.on).length;
+        if (onlineCount >= 12) return ws.send(JSON.stringify({ t: "err", m: "Sala cheia (máximo de 12)." }));
+        p = { id: pid, name, ws: null, on: false, v: false, clr, em, offAt: null }; r.players.set(pid, p);
       } else if (p.ws && p.ws !== ws) { try { p.ws.close(); } catch (e) { } }
-      p.name = name; p.ws = ws; p.on = true; p.v = false; p.clr = clr; p.em = em;
-      // sem anfitrião definido, ou anfitrião offline e mais ninguém online: este jogador assume
+      p.name = name; p.ws = ws; p.on = true; p.v = false; p.clr = clr; p.em = em; p.offAt = null;
       if (!r.hostId || (!online(r, r.hostId) && ![...r.players.values()].some(q => q.on && q.id !== pid))) r.hostId = pid;
       room = r; me = p; r.seen = Date.now();
       send(p, { t: "ice", ice: ICE });
@@ -247,9 +263,8 @@ wss.on("connection", ws => {
   });
   ws.on("close", () => {
     if (!room || !me || me.ws !== ws) return;
-    me.on = false; me.v = false; room.seen = Date.now();
+    me.on = false; me.v = false; me.offAt = Date.now(); room.seen = Date.now();
     if (room.hostId === me.id) {
-      // anfitrião caiu: passa o comando se não voltar em 15 s
       setTimeout(() => {
         if (room.hostId === me.id && !me.on) {
           const n = [...room.players.values()].find(p => p.on);
@@ -260,9 +275,28 @@ wss.on("connection", ws => {
     tick(room); broadcast(room);
   });
 });
+
+// FIX: heartbeat — derruba conexões mortas que não respondem a ping
+// (evita "fantasmas" travando a votação ou o avanço de dicas)
+setInterval(() => {
+  wss.clients.forEach(ws => {
+    if (!ws.isAlive) return ws.terminate();
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) { }
+  });
+}, 30000);
+
+// Limpeza: salas inativas + jogadores offline antigos em lobby/final (evita acúmulo em memória)
 setInterval(() => {
   const now = Date.now();
-  rooms.forEach((r, c) => { if (![...r.players.values()].some(p => p.on) && now - r.seen > 30 * 60 * 1000) rooms.delete(c); });
+  rooms.forEach((r, c) => {
+    if (r.g.ph === "lobby" || r.g.ph === "final") {
+      [...r.players.entries()].forEach(([pid, p]) => {
+        if (!p.on && p.offAt && now - p.offAt > 10 * 60 * 1000) r.players.delete(pid);
+      });
+    }
+    if (![...r.players.values()].some(p => p.on) && now - r.seen > 30 * 60 * 1000) rooms.delete(c);
+  });
 }, 60000);
 
 server.on("error", e => {
@@ -270,4 +304,4 @@ server.on("error", e => {
   else console.error("Erro no servidor:", e.message);
   process.exit(1);
 });
-server.listen(PORT, () => console.log("Bluffin rodando em http://localhost:" + PORT));
+server.listen(PORT, "0.0.0.0", () => console.log("Bluffin rodando em http://localhost:" + PORT));
