@@ -212,28 +212,19 @@ function profilePicker(){
  return '<div class="set"><b>Seu perfil</b><div class="row" style="align-items:center;gap:12px">'+av(U.avc,U.avem,U.name)+'<div class="swgrid">'+sw+'</div></div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:8px">'+em+'</div></div>';
 }
 // ====== Google AdSense ======
-// Publisher ID já configurado abaixo. Falta só criar os 5 blocos no painel do AdSense
-// (Anúncios → Por bloco de anúncios → Criar → Display responsivo) e colar cada Slot ID
-// no lugar de SLOT_ENTRY, SLOT_LOBBY, SLOT_FINAL, SLOT_RAIL_L, SLOT_RAIL_R.
-// Enquanto ficarem assim, o site mostra só o espaço reservado — nada é pedido ao Google.
 const ADSENSE_CLIENT = "ca-pub-4306159658150251";
 const ADSENSE_SLOTS = {
-  "entry":  "SLOT_ENTRY",
-  "lobby":  "SLOT_LOBBY",
-  "final":  "SLOT_FINAL",
-  "rail-l": "SLOT_RAIL_L",
-  "rail-r": "SLOT_RAIL_R"
+  "entry":  "8847325784",    // Quadrado
+  "lobby":  "6864547310",    // Horizontal 1
+  "final":  "4601134021",    // Horizontal 2
+  "rail-l": "6864547310",    // Vertical 1
+  "rail-r": "7510368394"     // Vertical 2
 };
 
 function adSlot(id){return '<div class="adslot" data-ad-marker="'+esc(id||"")+'">📣 Espaço reservado para anúncio</div>'}
-// O app redesenha a tela inteira a cada evento (chat, jogador entrando etc.), mas um anúncio real só
-// pode ser pedido ao Google UMA vez por bloco (pedir de novo a cada redesenho viola a política do
-// AdSense e pode banir a conta). Por isso o elemento de anúncio é criado uma única vez e só
-// "transplantado" pro lugar certo a cada redesenho — nunca recriado.
 const AD_SLOTS={};
 function buildAdEl(id){
  const el=document.createElement("div");
- // Considera "slot real" apenas se o Slot ID foi preenchido (não é mais o placeholder SLOT_*)
  const slotId = ADSENSE_SLOTS[id];
  const hasRealSlot = slotId && !/^SLOT_/.test(slotId);
  if(ADSENSE_CLIENT && hasRealSlot){
