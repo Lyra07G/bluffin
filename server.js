@@ -195,18 +195,36 @@ function tickQA(room) {
         else break;
       }
       if (qa.answerIdx >= qa.answerOrder.length) {
-        qa.history.push({ author: curId, question: qa.question, answers: { ...qa.answers } });
-        qa.turnIdx++; qa.answers = {}; qa.answerOrder = []; qa.answerIdx = 0; qa.question = "";
-        if (qa.turnIdx >= g.ord.length) {
-          qa.round++; qa.turnIdx = 0;
-          if (qa.round >= g.hr) { toDisc(room); return; }
-        }
-        qa.sub = "ask";
-        continue;
+        // Todo mundo respondeu: mostra a última resposta por um tempo antes de avançar
+        if (qa.sub !== "done") { qa.sub = "done"; scheduleQaAdvance(room, qa); }
+        break;
       }
     }
     break;
   }
+}
+// Agenda o avanço da pergunta/rodada depois que todos responderam, dando tempo pra ler a última resposta.
+function scheduleQaAdvance(room, qa) {
+  if (qa._timer) return;
+  qa._timer = setTimeout(() => {
+    const g = room.g;
+    if (g.qa !== qa || g.ph !== "qa" || qa.sub !== "done") return; // estado mudou nesse meio tempo (restart, skip, etc.)
+    advanceQA(room);
+    broadcast(room);
+  }, 4500);
+}
+function advanceQA(room) {
+  const g = room.g, qa = g.qa;
+  if (!qa) return;
+  clearTimeout(qa._timer); qa._timer = null;
+  const curId = g.ord[qa.turnIdx % g.ord.length];
+  qa.history.push({ author: curId, question: qa.question, answers: { ...qa.answers } });
+  qa.turnIdx++; qa.answers = {}; qa.answerOrder = []; qa.answerIdx = 0; qa.question = ""; qa.sub = "ask";
+  if (qa.turnIdx >= g.ord.length) {
+    qa.round++; qa.turnIdx = 0;
+    if (qa.round >= g.hr) { toDisc(room); return; }
+  }
+  tickQA(room); // pula quem estiver offline etc.
 }
 function tick(room) {
   const g = room.g, on = i => online(room, i), live = (g.pl || []).filter(on);
@@ -290,7 +308,7 @@ function act(room, me, m) {
       qa.answers[me.id] = text;
       break;
     }
-    case "skipQA": if (isH && g.ph === "qa") toDisc(room); break;
+    case "skipQA": if (isH && g.ph === "qa") { if (g.qa) { clearTimeout(g.qa._timer); g.qa._timer = null; } toDisc(room); } break;
     case "moreAsk": if (g.ph === "disc" && inG && !g.poll && g.hr < 10) { g.poll = { y: {} }; g.poll.y[me.id] = true; g.msg = ""; } break;
     case "moreVote": if (g.ph === "disc" && g.poll && inG) g.poll.y[me.id] = !!m.y; break;
     case "moreClose": if (isH && g.ph === "disc" && g.poll) closePoll(room); break;
@@ -310,6 +328,7 @@ function act(room, me, m) {
     case "voice": me.v = !!m.on; break;
     case "restart": {
       if (!isH) return;
+      if (g.qa) { clearTimeout(g.qa._timer); g.qa._timer = null; }
       g.ph = "lobby"; g.ri = 0; g.sc = {}; g.pl = []; g.nm = {}; g.qa = null; g.msg = "";
       break;
     }

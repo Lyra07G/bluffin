@@ -259,7 +259,7 @@ function connect(create,code){
      U.chat.sort((a,b)=>a.ts-b.ts);
      if(U.chat.length>100) U.chat=U.chat.slice(-100);
    }
-   if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs=""}
+   if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs="";U.discOpen=null}
    // Resetar inputs quando muda turno/subfase
    if(m.qa){
      if(U.lastQaSub!==m.qa.sub || U.lastQaTurnIdx!==m.qa.turnIdx){
@@ -367,6 +367,20 @@ function renderQaHistory(history){
  if(!history||!history.length)return "";
  return '<details class="card" style="padding:10px 14px"><summary class="mut" style="cursor:pointer;font-size:14px">Ver perguntas anteriores ('+history.length+')</summary><div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">'+history.slice(-5).map(h=>'<div><b class="mut">'+esc(nm(h.author))+' perguntou:</b><div>'+esc(h.question)+'</div></div>').join("")+'</div></details>';
 }
+function playerAnswers(pid){
+ if(!S||!S.qa||!Array.isArray(S.qa.history))return [];
+ return S.qa.history.filter(h=>h.answers&&h.answers[pid]!==undefined).map(h=>({q:h.question,by:h.author,a:h.answers[pid]}));
+}
+function discAnswersBlock(){
+ if(!S.qa||!Array.isArray(S.qa.history)||!S.qa.history.length)return "";
+ const rows=S.pl.map(id=>{
+  const open=U.discOpen===id,ans=playerAnswers(id);
+  const head='<button class="chip'+(open?" on":"")+'" data-a="discToggle" data-i="'+id+'" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center"><span>'+esc(nm(id))+'</span><span class="mut" style="font-weight:600">'+ans.length+(ans.length===1?" resposta":" respostas")+' '+(open?"▲":"▼")+'</span></button>';
+  const body=open?('<div class="card" style="margin:6px 0 10px">'+(ans.length?ans.map(x=>'<div style="margin-bottom:10px"><b class="mut" style="font-size:13px">'+esc(nm(x.by))+' perguntou</b><div style="margin:2px 0">'+esc(x.q)+'</div><div><b>Resposta:</b> '+esc(x.a)+'</div></div>').join(""):'<p class="mut">Essa pessoa não respondeu nenhuma pergunta nesta rodada.</p>')+'</div>'):'';
+  return head+body;
+ }).join("");
+ return '<div class="set"><b>Respostas da rodada</b><p class="mut" style="font-size:14px;margin:0 0 4px">Toque num nome pra rever o que essa pessoa respondeu.</p>'+rows+'</div>';
+}
 function game(){
  const vb=voiceBox(),top=topBar();
  const inG=(S.pl||[]).includes(S.me);
@@ -406,13 +420,15 @@ function game(){
    const others=S.pl.filter(i=>i!==curId);
    const answerOrder=Array.isArray(qa.answerOrder)&&qa.answerOrder.length?qa.answerOrder: S.ord.filter(i=>i!==curId);
    const currentAnswerer=qa.currentAnswerer || answerOrder.find(i=>qa.answers[i]===undefined) || null;
-   main+='<p class="mut">Respostas por fila: '+(currentAnswerer?'agora é a vez de <b>'+esc(nm(currentAnswerer))+'</b>.':'todas as respostas foram enviadas.')+'</p>';
+   main+='<p class="mut">Respostas por fila: '+(qa.sub==="done"?'todas as respostas chegaram.':currentAnswerer?'agora é a vez de <b>'+esc(nm(currentAnswerer))+'</b>.':'todas as respostas foram enviadas.')+'</p>';
    main+='<div class="qa-answers">'+others.map(i=>{
     const ans=qa.answers[i];
     const waitingTurn=ans===undefined && i===currentAnswerer;
     return '<div class="qa-ans '+(ans!==undefined?"done":"")+' '+(waitingTurn?"active":"")+'"><b>'+esc(nm(i))+(waitingTurn?' · sua vez':'')+'</b><span>'+(ans!==undefined?esc(ans):(waitingTurn?'<i>respondendo agora...</i>':'<i>aguardando na fila...</i>'))+'</span></div>';
    }).join("")+'</div>';
-   if(!isCurrent){
+   if(qa.sub==="done"){
+    main+='<div class="card" style="text-align:center;margin-top:10px"><b>Todo mundo respondeu! 🎉</b><p class="mut" style="margin:4px 0 0">Preparando a próxima pergunta…</p></div>';
+   }else if(!isCurrent){
     if(qa.answers[S.me]===undefined && S.me===currentAnswerer){
      main+='<div class="card"><b>Sua vez de responder</b><textarea id="qa-ans" placeholder="Sua resposta..." maxlength="200">'+esc(U.ansInput||'')+'</textarea><button class="btn p" data-a="answer" style="margin-top:8px">Enviar resposta</button></div>';
     }else if(qa.answers[S.me]!==undefined){
@@ -431,7 +447,7 @@ function game(){
   let poll="";
   if(S.poll)poll='<div class="card"><b>Mais uma rodada de perguntas?</b><p class="mut">Sim '+S.poll.yes+' · Não '+S.poll.no+' · '+S.poll.n+' online. A maioria decide.</p>'+(inG?'<div class="row"><button class="chip '+(S.poll.mine===true?"on":"")+'" data-a="moreVote" data-y="1" style="flex:1;text-align:center">Sim</button><button class="chip '+(S.poll.mine===false?"on":"")+'" data-a="moreVote" data-y="0" style="flex:1;text-align:center">Não</button></div>':'')+(isH()?'<button class="btn g" data-a="moreClose" style="margin-top:8px">Encerrar votação agora</button>':'')+'</div>';
   else if(inG&&S.hr<10)poll='<button class="btn g" data-a="moreAsk">Pedir mais uma rodada de perguntas</button>';
-  return top+'<h2>Discussão</h2><p class="mut">'+(S.msg?esc(S.msg)+' ':'')+'Quem respondeu de forma vaga? Quem fugiu da pergunta?</p>'+(S.te?'<div class="timer" id="tm"></div>':'<div class="card mut">Tempo livre. O anfitrião inicia a votação.</div>')+poll+vb+(inG?roleBlock():'')+hb("toVote","Iniciar a votação")}
+  return top+'<h2>Discussão</h2><p class="mut">'+(S.msg?esc(S.msg)+' ':'')+'Quem respondeu de forma vaga? Quem fugiu da pergunta?</p>'+(S.te?'<div class="timer" id="tm"></div>':'<div class="card mut">Tempo livre. O anfitrião inicia a votação.</div>')+discAnswersBlock()+poll+vb+(inG?roleBlock():'')+hb("toVote","Iniciar a votação")}
  case "vote":{
   if(!inG)return top+'<h2>Votação</h2><p class="mut">Aguarde a próxima rodada.</p>'+vb;
   return top+'<h2>Quem é o impostor?</h2><p class="mut">'+(S.vr?"Desempate. ":"")+(S.ni>1?'Há '+S.ni+' impostores. Vote em quem você mais suspeita. ':'')+'Voto secreto, dá para mudar até todos votarem.</p><div class="grid">'+S.cd.filter(i=>i!==S.me).map(i=>'<button class="chip '+(S.myvote===i?"on":"")+'" data-a="vote" data-i="'+i+'">'+esc(nm(i))+'</button>').join("")+'</div><p class="mut">Votos registrados: '+S.nvote+' de '+S.pl.length+'</p>'+vb+hb("forceVote","Apurar agora com os votos que chegaram")}
@@ -463,7 +479,7 @@ function chatPanel(){
 function render(){
  const sg=S?{...S,cfg:{...S.cfg,custom:0},chat:0,qa:0}:null;
  const lastChat=U.chat.length>0?U.chat[U.chat.length-1].id:"";
- const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.copiedInvite,U.pro,U.toast,U.chat.length,lastChat,U.askInput.length>0,U.ansInput.length>0]);
+ const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.copiedInvite,U.pro,U.toast,U.chat.length,lastChat,U.askInput.length>0,U.ansInput.length>0,U.discOpen]);
  if(sig===lastSig)return;lastSig=sig;
  const ae=document.activeElement,keep=ae&&ae.id,keepSel=(keep&&typeof ae.selectionStart==="number")?[ae.selectionStart,ae.selectionEnd]:null;
  const oldChatEl=$("chat-msgs");
@@ -501,6 +517,7 @@ document.addEventListener("click",e=>{
   case "avem":U.avem=b.dataset.v;ls("bf_avem",U.avem);rr();break;
   case "pro":U.modal="pro";rr();break;
   case "closeModal":U.modal=null;rr();break;
+  case "discToggle":U.discOpen=U.discOpen===b.dataset.i?null:b.dataset.i;rr();break;
   case "copyCode":{if(!S)break;const ok=()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)};
    if(navigator.clipboard)navigator.clipboard.writeText(S.code).then(ok).catch(()=>{});else ok();break}
   case "copyInvite":{if(!S)break;const text="Entra na minha sala de Bluffin! Código: "+S.code+" — "+location.origin;
@@ -515,7 +532,7 @@ document.addEventListener("click",e=>{
   case "chatSend":{const text=(U.chatInput||"").trim();if(!text)break;send({t:"chat",text});U.chatInput="";rr();setTimeout(()=>{const inp=$("chat-in");if(inp)inp.focus()},0);break}
   case "restart":{if(!isH())break;if(!confirm("Reiniciar partida? O placar será zerado."))break;send({t:"restart"});break}
   case "leave":voiceLeave();ss("bf_room",null);if(ws){ws.onclose=null;ws.close()}S=null;U.scr="entry";
-   U.chat=[];U.chatInput="";U.askInput="";U.ansInput="";U.lastQaSub="";U.lastQaTurnIdx=-1;
+   U.chat=[];U.chatInput="";U.askInput="";U.ansInput="";U.lastQaSub="";U.lastQaTurnIdx=-1;U.discOpen=null;
    rr();break;
  }
 });
