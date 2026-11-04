@@ -43,23 +43,45 @@ const MIME = {
   ".json": "application/json", ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8"
 };
 const server = http.createServer((req, res) => {
-  let u = "/";
-  try { u = decodeURIComponent((req.url || "/").split("?")[0]); } catch (e) { }
-  if (u === "/health") return res.end("ok");
-  if (u === "/") u = "/index.html";
-  const f = path.normalize(path.join(PUB, u));
-  if (!f.startsWith(PUB)) { res.writeHead(403); return res.end(); }
-  fs.readFile(f, (e, d) => {
-    if (e) { res.writeHead(404); return res.end("Não encontrado"); }
-    const isHtml = path.extname(f) === ".html";
+  const method = req.method || "GET";
+  if (method !== "GET" && method !== "HEAD") {
+    res.writeHead(405, { "Allow": "GET, HEAD", "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Método não permitido");
+  }
+  let pathname;
+  try { pathname = decodeURIComponent(new URL(req.url || "/", "http://localhost").pathname); }
+  catch { res.writeHead(400); return res.end("Requisição inválida"); }
+  if (pathname === "/health") {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+    return res.end("ok");
+  }
+  if (pathname === "/") pathname = "/index.html";
+  if (pathname.includes("\0") || pathname.split(/[\\/]+/).some(part => part.startsWith("."))) {
+    res.writeHead(403, { "X-Content-Type-Options": "nosniff" }); return res.end("Acesso negado");
+  }
+  const filePath = path.resolve(PUB, "." + pathname);
+  const rel = path.relative(PUB, filePath);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    res.writeHead(403, { "X-Content-Type-Options": "nosniff" }); return res.end("Acesso negado");
+  }
+  fs.readFile(filePath, (err, data) => {
+    if (err) { res.writeHead(err.code === "EACCES" ? 403 : 404, { "Content-Type": "text/plain; charset=utf-8", "X-Content-Type-Options": "nosniff" }); return res.end("Não encontrado"); }
+    const ext = path.extname(filePath).toLowerCase();
+    const isHtml = ext === ".html";
     res.writeHead(200, {
-      "Content-Type": MIME[path.extname(f)] || "application/octet-stream",
-      "Cache-Control": isHtml ? "no-cache" : "public, max-age=3600"
+      "Content-Type": MIME[ext] || "application/octet-stream",
+      "Cache-Control": isHtml ? "no-cache" : "public, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups"
     });
-    res.end(d);
+    if (method === "HEAD") return res.end();
+    res.end(data);
   });
 });
-const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
+server.headersTimeout = 10000;
+server.requestTimeout = 15000;
+const wss = new WebSocketServer({ server, maxPayload: 16 * 1024, perMessageDeflate: false });
 
 const rooms = new Map();
 function newRoom() {
@@ -86,27 +108,6 @@ function pickWord(room) {
   if (!w.length) { room.used = room.used.filter(x => !words.includes(x)); w = words; }
   const word = w[rnd(w.length)]; room.used.push(word); return { word, cat, words };
 }
-const SIM = {
-  "Shrek": "Mike Wazowski", "Bob Esponja": "Patrick Estrela", "Mickey Mouse": "Pato Donald", "Pikachu": "Raichu", "Tom e Jerry": "Frajola e Piu-Piu", "Os Simpsons": "Uma Família da Pesada", "Turma da Mônica": "Sítio do Picapau Amarelo", "Scooby-Doo": "Snoopy", "Rei Leão": "Madagascar", "Frozen": "Moana", "Toy Story": "Carros", "Naruto": "Dragon Ball",
-  "Minecraft": "Terraria", "Fortnite": "PUBG", "Super Mario": "Sonic", "Free Fire": "Call of Duty", "Among Us": "Fall Guys", "FIFA": "PES", "Zelda": "Skyrim", "Pac-Man": "Space Invaders", "Tetris": "Candy Crush", "GTA": "Red Dead Redemption", "Roblox": "Minecraft", "Pokémon": "Digimon",
-  "Titanic": "Pearl Harbor", "Harry Potter": "Percy Jackson", "Vingadores": "Liga da Justiça", "Stranger Things": "Dark", "Round 6": "Alice in Borderland", "Star Wars": "Star Trek", "Batman": "Homem de Ferro", "Avatar": "Planeta dos Macacos", "Jurassic Park": "King Kong", "Tropa de Elite": "Cidade de Deus", "Friends": "How I Met Your Mother", "Matrix": "A Origem",
-  "Darth Vader": "Lorde Voldemort", "Super-Homem": "Shazam", "Sherlock Holmes": "Hercule Poirot", "Mulher-Maravilha": "Capitã Marvel", "Chapeuzinho Vermelho": "Branca de Neve", "Coringa": "Duas-Caras", "Homer Simpson": "Peter Griffin", "Saci Pererê": "Curupira", "Peter Pan": "Pinóquio", "Gandalf": "Dumbledore", "Hulk": "Shrek", "Homem-Aranha": "Homem-Formiga",
-  "Neymar": "Vinícius Júnior", "Pelé": "Maradona", "Messi": "Mbappé", "Cristiano Ronaldo": "Haaland", "Maracanã": "Mineirão", "Flamengo": "Corinthians", "Grêmio": "Cruzeiro", "Internacional": "Sport", "Copa do Mundo": "Olimpíadas", "Pênalti": "Escanteio", "Árbitro": "Bandeirinha", "Ronaldinho Gaúcho": "Kaká",
-  "Anitta": "Ludmilla", "Xuxa": "Angélica", "Silvio Santos": "Faustão", "Ivete Sangalo": "Claudia Leitte", "Gusttavo Lima": "Wesley Safadão", "Taylor Swift": "Selena Gomez", "Beyoncé": "Jennifer Lopez", "Rihanna": "Lady Gaga", "Elon Musk": "Jeff Bezos", "Michael Jackson": "Prince", "Gisele Bündchen": "Adriana Lima", "Luciano Huck": "Rodrigo Faro",
-  "Girafa": "Zebra", "Pinguim": "Foca", "Tubarão": "Orca", "Camaleão": "Iguana", "Polvo": "Lula", "Elefante": "Hipopótamo", "Canguru": "Coala", "Coruja": "Águia", "Tartaruga": "Cágado", "Panda": "Urso-polar", "Jacaré": "Crocodilo", "Morcego": "Coruja",
-  "Pizza": "Esfiha", "Churrasco": "Costela assada", "Brigadeiro": "Beijinho", "Sushi": "Sashimi", "Feijoada": "Feijão tropeiro", "Hambúrguer": "Cachorro-quente", "Pão de queijo": "Tapioca", "Lasanha": "Canelone", "Coxinha": "Risole", "Açaí": "Sorvete", "Chimarrão": "Tereré", "Pastel": "Empada",
-  "Praia": "Balneário", "Aeroporto": "Rodoviária", "Hospital": "Clínica", "Shopping": "Galeria", "Cinema": "Teatro", "Escola": "Faculdade", "Biblioteca": "Livraria", "Circo": "Parque de diversões", "Zoológico": "Aquário", "Estádio": "Ginásio", "Padaria": "Confeitaria", "Cachoeira": "Rio",
-  "Guarda-chuva": "Guarda-sol", "Escova de dentes": "Escova de cabelo", "Controle remoto": "Controle de videogame", "Geladeira": "Freezer", "Óculos": "Óculos de sol", "Cadeado": "Fechadura", "Violão": "Guitarra", "Tesoura": "Estilete", "Espelho": "Janela", "Relógio": "Cronômetro", "Mochila": "Bolsa", "Ventilador": "Ar-condicionado"
-};
-function pickDecoy(room, word, words) {
-  const alt = words.filter(x => norm(x) !== norm(word));
-  if (room.cfg.theme !== "custom" && SIM[word] && norm(SIM[word]) !== norm(word)) return SIM[word];
-  return alt.length ? alt[rnd(alt.length)] : word;
-}
-function mkHint(word) {
-  const t = word.trim(), ws = t.split(/\s+/).filter(Boolean), n = t.replace(/[^\p{L}\p{N}]/gu, "").length;
-  return "começa com “" + t[0].toUpperCase() + "” · " + (ws.length === 1 ? n + " letras" : ws.length + " palavras");
-}
 function pickImps(room, pl, n) {
   const st = room.streak, out = [], pool = pl.filter(i => (st[i] || 0) < 2);
   while (out.length < n && pool.length) out.push(pool.splice(rnd(pool.length), 1)[0]);
@@ -124,9 +125,14 @@ function startRound(room) {
   const ps = [...room.players.values()].filter(p => p.on);
   if (ps.length < 3) return;
   const pl = ps.map(p => p.id), n = Math.min(room.cfg.imps, Math.floor((pl.length - 1) / 2) || 1);
-  const imps = pickImps(room, pl, n), { word, cat, words } = pickWord(room), rl = {}, nm = {};
-  const md = room.cfg.mode === "blind" ? "blind" : "classic", dc = md === "blind" ? pickDecoy(room, word, words) : "";
-  const ord = shuffle(pl), hn = (md === "classic" && room.cfg.hint && imps.includes(ord[0])) ? { id: ord[0], t: mkHint(word) } : null;
+  const imps = pickImps(room, pl, n), picked = pickWord(room), word = picked.word, cat = picked.cat, rl = {}, nm = {};
+  const md = room.cfg.mode === "blind" ? "blind" : "classic";
+  const alternatives = (picked.words || []).filter(w => norm(w) !== norm(word));
+  const dc = md === "blind" ? (alternatives.length ? alternatives[rnd(alternatives.length)] : word) : "";
+  const ord = shuffle(pl);
+  const hn = (md === "classic" && room.cfg.hint && imps.includes(ord[0]))
+    ? { id: ord[0], t: "Começa com “" + word.trim()[0].toUpperCase() + "” · " + word.trim().split(/\s+/).length + " palavra(s)" }
+    : null;
   ps.forEach(p => { rl[p.id] = imps.includes(p.id) ? (md === "blind" ? dc : "#") : word; nm[p.id] = p.name; });
   room.g = {
     ph: "role", ri: room.g.ri + 1, sc: room.g.sc, pl, nm, ord, md, dc, hn, imps, hr: room.cfg.hr, ni: n,
@@ -134,7 +140,7 @@ function startRound(room) {
     poll: null, msg: "", rd: {}, vt: {}, gx: {}, last: room.cfg.last, qa: null
   };
 }
-const impsOf = g => g.pl.filter(i => (g.imps || []).includes(i));
+const impsOf = g => Array.isArray(g.imps) ? g.imps.slice() : g.pl.filter(i => g.rl[i] === "#");
 function toDisc(room) { const g = room.g; g.ph = "disc"; g.te = room.cfg.timer ? Date.now() + room.cfg.timer * 60000 : 0; g.poll = null; g.msg = ""; }
 function closePoll(room) {
   const g = room.g, live = g.pl.filter(i => online(room, i)), yes = live.filter(i => g.poll.y[i] === true).length;
@@ -148,10 +154,12 @@ function closePoll(room) {
   } else g.msg = "A maioria preferiu seguir para a votação.";
 }
 function resolveVotes(room) {
-  const g = room.g, cnt = {}; g.cd.forEach(c => cnt[c] = 0);
-  g.pl.forEach(i => { const t = g.vt[i]; if (t && g.cd.includes(t)) cnt[t]++; });
+  const g = room.g, candidates = g.cd.filter(id => online(room, id)), voters = g.pl.filter(id => online(room, id)), cnt = {};
+  candidates.forEach(c => cnt[c] = 0);
+  voters.forEach(i => { const t = g.vt[i]; if (t && candidates.includes(t)) cnt[t]++; });
+  if (!candidates.length) { g.msg = "Não há jogadores disponíveis para votar."; g.ph = "disc"; g.te = 0; return; }
   g.cn = cnt;
-  const need = g.vr ? g.nd : g.ni, s = g.cd.slice().sort((a, b) => cnt[b] - cnt[a]);
+  const need = Math.min(g.vr ? g.nd : g.ni, candidates.length), s = candidates.slice().sort((a, b) => cnt[b] - cnt[a]);
   let acc = null, tie = null;
   if (s.length <= need) acc = s;
   else {
@@ -168,37 +176,6 @@ function finish(room, ok, gt) {
     const isI = im.includes(i);
     if (g.won === "i") { if (isI) g.sc[i] = (g.sc[i] || 0) + 2; } else if (!isI) g.sc[i] = (g.sc[i] || 0) + 1;
   });
-}
-function tickQA(room) {
-  const g = room.g, on = i => online(room, i), qa = g.qa;
-  if (!qa || !g.ord.length) return;
-  const maxIter = g.ord.length * 3 + 3;
-  for (let i = 0; i < maxIter; i++) {
-    const curId = g.ord[qa.turnIdx % g.ord.length];
-    if (!on(curId)) {
-      qa.turnIdx++;
-      if (qa.turnIdx >= g.ord.length) {
-        qa.round++; qa.turnIdx = 0;
-        if (qa.round >= g.hr) { toDisc(room); return; }
-      }
-      qa.sub = "ask"; qa.question = ""; qa.answers = {}; qa.answerOrder = []; qa.answerIdx = 0;
-      continue;
-    }
-    if (qa.sub === "answer") {
-      if (!Array.isArray(qa.answerOrder)) qa.answerOrder = g.ord.filter(x => x !== curId);
-      if (!Number.isInteger(qa.answerIdx)) qa.answerIdx = 0;
-      while (qa.answerIdx < qa.answerOrder.length) {
-        const answerer = qa.answerOrder[qa.answerIdx];
-        if (!on(answerer) || qa.answers[answerer] !== undefined) qa.answerIdx++;
-        else break;
-      }
-      if (qa.answerIdx >= qa.answerOrder.length) {
-        if (qa.sub !== "done") { qa.sub = "done"; scheduleQaAdvance(room, qa); }
-        break;
-      }
-    }
-    break;
-  }
 }
 function scheduleQaAdvance(room, qa) {
   if (qa._timer) return;
@@ -222,8 +199,58 @@ function advanceQA(room) {
   }
   tickQA(room);
 }
+function tickQA(room) {
+  const g = room.g, on = i => online(room, i), qa = g.qa;
+  if (!qa || !g.ord.length || qa.sub === "done") return;
+  const maxIter = g.ord.length * 3 + 3;
+  for (let i = 0; i < maxIter; i++) {
+    const curId = g.ord[qa.turnIdx % g.ord.length];
+    if (!on(curId)) {
+      qa.turnIdx++;
+      if (qa.turnIdx >= g.ord.length) {
+        qa.round++; qa.turnIdx = 0;
+        if (qa.round >= g.hr) { toDisc(room); return; }
+      }
+      qa.sub = "ask"; qa.question = ""; qa.answers = {}; qa.answerOrder = []; qa.answerIdx = 0;
+      continue;
+    }
+    if (qa.sub === "answer") {
+      if (!Array.isArray(qa.answerOrder)) qa.answerOrder = g.ord.filter(x => x !== curId);
+      if (!Number.isInteger(qa.answerIdx)) qa.answerIdx = 0;
+      while (qa.answerIdx < qa.answerOrder.length) {
+        const answerer = qa.answerOrder[qa.answerIdx];
+        if (!on(answerer) || qa.answers[answerer] !== undefined) qa.answerIdx++;
+        else break;
+      }
+      if (qa.answerIdx >= qa.answerOrder.length) {
+        qa.sub = "done";
+        scheduleQaAdvance(room, qa);
+      }
+    }
+    break;
+  }
+}
+
+function containsSecret(text, room, playerId) {
+  const g = room.g, normalized = norm(text);
+  if (!normalized || !g.word) return false;
+  const candidates = [g.word];
+  const own = g.rl && g.rl[playerId];
+  if (own && own !== "#") candidates.push(own);
+  return candidates.some(value => {
+    const secret = norm(value);
+    return secret && (normalized.includes(secret) || (normalized.length >= 4 && secret.includes(normalized)));
+  });
+}
+function beginVote(room, timedOut = false) {
+  const g = room.g;
+  g.ph = "vote"; g.vr = 0; g.cd = g.pl.filter(id => online(room, id));
+  g.fx = []; g.vt = {}; g.poll = null; g.te = 0; g.msg = timedOut ? "O tempo acabou. Hora de votar!" : "";
+}
+
 function tick(room) {
   const g = room.g, on = i => online(room, i), live = (g.pl || []).filter(on);
+  if (g.ph === "disc" && g.te && Date.now() >= g.te) { beginVote(room, true); return; }
   if (g.ph === "role" && live.length && live.every(i => g.rd[i])) startQA(room);
   if (g.ph === "qa") tickQA(room);
   if (g.ph === "disc" && g.poll && live.length && live.every(i => g.poll.y[i] !== undefined)) closePoll(room);
@@ -248,7 +275,7 @@ function view(room, pid) {
     ph: g.ph, ri: g.ri, pl: g.pl, nm: g.nm, ord: g.ord, hr: g.hr, ni: g.ni, ct: g.cat || "", te: g.te, vr: g.vr,
     cd: g.cd, sc: g.sc, msg: g.msg || "", role: inG && g.rl ? g.rl[pid] : null,
     ready: !!(g.rd && g.rd[pid]), nready: g.rd ? g.pl.filter(i => g.rd[i]).length : 0,
-    nvote: g.vt ? g.pl.filter(i => g.vt[i]).length : 0, myvote: g.vt ? g.vt[pid] || null : null,
+    nvote: g.vt ? g.pl.filter(i => online(room, i) && g.vt[i]).length : 0, myvote: g.vt ? g.vt[pid] || null : null,
     guessed: g.gx ? g.gx[pid] !== undefined : false,
     chat: room.chat.slice(-50)
   };
@@ -273,14 +300,14 @@ function broadcast(room) { room.players.forEach(p => { if (p.on) send(p, view(ro
 function act(room, me, m) {
   const g = room.g, isH = me.id === room.hostId, inG = g.pl.includes(me.id);
   switch (m.t) {
+    case "profile":
+      if (m.clr && AV_CLR.includes(m.clr)) me.clr = m.clr;
+      if (m.em !== undefined && AV_EM.includes(m.em)) me.em = m.em;
+      break;
     case "cfg":
       if (!isH || g.ph !== "lobby") return;
       if (m.k === "custom") { if (typeof m.v === "string") room.cfg.custom = m.v.slice(0, 2000); }
       else if (CFG_RULES[m.k] && CFG_RULES[m.k](m.v)) room.cfg[m.k] = m.v;
-      break;
-    case "profile":
-      if (m.clr && AV_CLR.includes(m.clr)) me.clr = m.clr;
-      if (m.em !== undefined && AV_EM.includes(m.em)) me.em = m.em;
       break;
     case "start": if (isH && (g.ph === "lobby" || g.ph === "final")) startRound(room); break;
     case "lobby": if (isH && g.ph === "final") g.ph = "lobby"; break;
@@ -293,6 +320,7 @@ function act(room, me, m) {
       if (me.id !== g.ord[qa.turnIdx % g.ord.length]) return;
       const text = String(m.text || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 200);
       if (!text) return;
+      if (containsSecret(text, room, me.id)) { send(me, { t: "sys", m: "Evite revelar a palavra secreta na pergunta." }); return; }
       qa.question = text; qa.sub = "answer"; qa.answers = {};
       qa.answerOrder = g.ord.filter(i => i !== me.id); qa.answerIdx = 0;
       break;
@@ -305,15 +333,16 @@ function act(room, me, m) {
       if (me.id !== qa.answerOrder[qa.answerIdx] || qa.answers[me.id] !== undefined) return;
       const text = String(m.text || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 200);
       if (!text) return;
+      if (containsSecret(text, room, me.id)) { send(me, { t: "sys", m: "Evite revelar a palavra secreta na resposta." }); return; }
       qa.answers[me.id] = text;
       break;
     }
-    case "skipQA": if (isH && g.ph === "qa") { if (g.qa) { clearTimeout(g.qa._timer); g.qa._timer = null; } toDisc(room); } break;
+    case "skipQA": if (isH && g.ph === "qa") { if (g.qa) clearTimeout(g.qa._timer); toDisc(room); } break;
     case "moreAsk": if (g.ph === "disc" && inG && !g.poll && g.hr < 10) { g.poll = { y: {} }; g.poll.y[me.id] = true; g.msg = ""; } break;
     case "moreVote": if (g.ph === "disc" && g.poll && inG) g.poll.y[me.id] = !!m.y; break;
     case "moreClose": if (isH && g.ph === "disc" && g.poll) closePoll(room); break;
-    case "toVote": if (isH && g.ph === "disc") { g.ph = "vote"; g.vr = 0; g.cd = g.pl; g.fx = []; g.vt = {}; g.poll = null; g.msg = ""; } break;
-    case "vote": if (g.ph === "vote" && inG && g.cd.includes(m.to) && m.to !== me.id) g.vt[me.id] = m.to; break;
+    case "toVote": if (isH && g.ph === "disc") beginVote(room); break;
+    case "vote": if (g.ph === "vote" && inG && online(room, me.id) && g.cd.includes(m.to) && online(room, m.to) && m.to !== me.id) g.vt[me.id] = m.to; break;
     case "forceVote": if (isH && g.ph === "vote") resolveVotes(room); break;
     case "revote": if (isH && g.ph === "tie") { g.vr = 1; g.vt = {}; g.ph = "vote"; } break;
     case "reveal":
@@ -328,7 +357,7 @@ function act(room, me, m) {
     case "voice": me.v = !!m.on; break;
     case "restart": {
       if (!isH) return;
-      if (g.qa) { clearTimeout(g.qa._timer); g.qa._timer = null; }
+      if (g.qa) clearTimeout(g.qa._timer);
       g.ph = "lobby"; g.ri = 0; g.sc = {}; g.pl = []; g.nm = {}; g.qa = null; g.msg = "";
       break;
     }
@@ -338,13 +367,9 @@ function act(room, me, m) {
       if (me.chatLast && now - me.chatLast < 800) { send(me, { t: "sys", m: "Espera um instante antes de mandar outra." }); return; }
       const text = String(m.text || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 200);
       if (!text) return;
-      if (g.word && ["qa", "disc", "vote", "tie"].includes(g.ph)) {
-        const nt = norm(text), own = g.rl && g.rl[me.id];
-        const hit = [g.word, own && own !== "#" ? own : null].filter(Boolean).some(w => { const nw = norm(w); return nw && nt && (nt.includes(nw) || (nt.length >= 3 && nw.includes(nt))); });
-        if (hit) {
-          send(me, { t: "sys", m: "Não pode falar a palavra secreta 😉" });
-          return;
-        }
+      if (["qa", "disc", "vote", "tie"].includes(g.ph) && containsSecret(text, room, me.id)) {
+        send(me, { t: "sys", m: "Não pode revelar a palavra secreta 😉" });
+        return;
       }
       me.chatLast = now;
       const msg = { id: crypto.randomBytes(6).toString("hex"), from: me.id, name: me.name, text, ts: now };
@@ -379,7 +404,7 @@ wss.on("connection", ws => {
     if (!m || typeof m.t !== "string") return;
     if (m.t === "join") {
       if (room) return;
-      const name = String(m.name || "").trim().slice(0, 14), pid = String(m.pid || "").replace(/[^a-z0-9]/gi, "").slice(0, 12);
+      const name = String(m.name || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 14), pid = String(m.pid || "").replace(/[^a-z0-9]/gi, "").slice(0, 12);
       if (!name || !pid) return ws.send(JSON.stringify({ t: "err", m: "Digite seu nome." }));
       const clr = AV_CLR.includes(m.clr) ? m.clr : AV_CLR[0], em = AV_EM.includes(m.em) ? m.em : "";
       let r;
@@ -421,6 +446,17 @@ setInterval(() => {
     try { ws.ping(); } catch (e) { }
   });
 }, 30000);
+
+setInterval(() => {
+  const now = Date.now();
+  rooms.forEach(r => {
+    if (r.g.ph === "disc" && r.g.te && now >= r.g.te) {
+      beginVote(r, true);
+      tick(r);
+      broadcast(r);
+    }
+  });
+}, 250);
 
 setInterval(() => {
   const now = Date.now();

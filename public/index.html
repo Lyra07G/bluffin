@@ -316,6 +316,64 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--or);
 .title-edit-btn { position: absolute; bottom: 20px; left: 20px; z-index: 2; font-family: "Press Start 2P", monospace; font-size: 10px; color: #fff; text-shadow: 2px 2px 0 #000; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
 .title-edit-btn:hover { color: var(--or); }
 .title-edit-btn svg { filter: drop-shadow(1px 1px 0 #000); }
+
+
+/* ====== POLIMENTO RESPONSIVO / ACESSIBILIDADE ====== */
+:root { color-scheme: dark; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; }
+body { min-width: 320px; overscroll-behavior-y: contain; }
+button, input, textarea { touch-action: manipulation; }
+button { -webkit-tap-highlight-color: transparent; }
+#app { overflow-wrap: anywhere; }
+#chat-panel { min-width: 0; }
+.chat-msg { min-width: 0; }
+.chat-msg-text { overflow-wrap: anywhere; }
+@media (min-width: 1000px) {
+  .layout { max-width: 1160px; gap: 22px; }
+  #app { flex: 1 1 620px; max-width: 700px; }
+  #chat-panel { flex: 0 1 320px; width: min(32vw, 340px); }
+}
+@media (max-width: 999px) {
+  .layout { width: 100%; }
+  #app { width: 100%; padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  #chat-panel { left: 0; right: 0; width: 100%; height: min(38dvh, 400px); max-height: 45dvh; }
+  .chat-header { min-height: 42px; display: flex; align-items: center; }
+  .chat-msgs { -webkit-overflow-scrolling: touch; }
+  .chat-input-row { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .chat-input-row input { min-width: 0; font-size: 16px; }
+  .chat-input-row button { min-width: 48px; min-height: 44px; }
+  .btn, .chip { min-height: 48px; }
+  input, textarea { font-size: 16px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .code { overflow-wrap: anywhere; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  #app { padding-top: 14px; }
+  #app.game-active h1 { font-size: clamp(23px, 7vw, 34px); }
+  #app.game-active h2 { font-size: 15px; }
+  #app.game-active .btn, #app.game-active .chip { font-size: 10px; padding: 11px 8px; overflow-wrap: anywhere; }
+  .grid { gap: 8px; }
+  .card { padding: 12px; }
+  .secret.word, .secret.imp { font-size: clamp(24px, 8vw, 34px); overflow-wrap: anywhere; }
+  .timer { font-size: clamp(38px, 13vw, 58px); }
+  .qa-q { font-size: 17px; }
+  .qa-ans span { overflow-wrap: anywhere; }
+  .bar span:first-child { flex-basis: 32%; }
+  .row { min-width: 0; }
+  .row > * { min-width: 0; }
+  .px-t { font-size: 13px; }
+  .code { font-size: clamp(28px, 9vw, 38px); letter-spacing: 4px; }
+}
+@media (max-height: 560px) and (max-width: 999px) {
+  #chat-panel { height: 34dvh; max-height: 220px; }
+  #app { padding-bottom: calc(34dvh + 30px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
 </style>
 </head>
 <body>
