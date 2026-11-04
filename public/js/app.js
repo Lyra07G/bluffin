@@ -86,7 +86,7 @@ const U={
   musicVol: getVol("bf_mvol", 0.5), sfxVol: getVol("bf_svol", 0.8), settingsOpen: false, customizeOpen: false
 };
 const AV_CLR=["#FF6A00","#FF3D7F","#7C5CFF","#00C2A8","#2EA8FF","#FFD400","#5CD65C","#FF5C5C"];
-const AV_EM = ["", "hat_cap", "hat_crown", "hat_party", "hat_top", "hat_halo", "hat_chef", "shirt_tie", "shirt_cape", "shirt_armor", "shirt_scarf"];
+const AV_EM = ["", "hat_cap", "hat_crown", "hat_party", "hat_top", "hat_halo", "hat_chef", "hat_mushroom", "hat_monkey", "bow_yellow", "shirt_tie", "shirt_cape", "shirt_armor", "shirt_scarf"];
 
 function profilePicker(){
  const sw=AV_CLR.map(c=>'<button class="swatch'+(U.avc===c?" on":"")+'" data-a="avc" data-v="'+c+'" style="background:'+c+'" aria-label="Cor"></button>').join("");
@@ -187,12 +187,54 @@ function pxCrew(c,o,em){
  const P={o:o.ol||"#120b22",b:c,s:shade(c,.68),v:o.vz||"#bff3ff",h:o.hl||"#ffffff"};let r="";
  CREW.forEach((row,y)=>{let x=0;while(x<12){const k=row[x];if(k==="."){x++;continue}let e=x;while(e<12&&row[e]===k)e++;r+='<rect x="'+x+'" y="'+y+'" width="'+(e-x)+'" height="1" fill="'+P[k]+'"/>';x=e}});
  
+ // ===== CHAPÉUS (em cima da cabeça) =====
  if (em === "hat_cap") { r += '<rect x="2" y="-1" width="8" height="2" fill="#FF3D7F"/><rect x="1" y="1" width="10" height="1" fill="#D7191F"/>'; }
  else if (em === "hat_crown") { r += '<rect x="2" y="-2" width="1" height="3" fill="#FFD400"/><rect x="5" y="-2" width="2" height="3" fill="#FFD400"/><rect x="9" y="-2" width="1" height="3" fill="#FFD400"/><rect x="2" y="0" width="8" height="1" fill="#FFD400"/>'; }
  else if (em === "hat_party") { r += '<rect x="6" y="-3" width="1" height="1" fill="#FF6A00"/><rect x="5" y="-2" width="3" height="1" fill="#2EA8FF"/><rect x="4" y="-1" width="5" height="1" fill="#5CD65C"/><rect x="3" y="0" width="7" height="1" fill="#FFD400"/>'; }
  else if (em === "hat_top") { r += '<rect x="2" y="1" width="8" height="1" fill="#171717"/><rect x="3" y="-2" width="6" height="3" fill="#171717"/>'; }
  else if (em === "hat_halo") { r += '<rect x="3" y="-2" width="6" height="1" fill="#FFD400"/>'; }
  else if (em === "hat_chef") { r += '<rect x="2" y="-2" width="8" height="3" fill="#FFFFFF"/>'; }
+ 
+ // ===== NOVOS CHAPÉUS =====
+ // 🍄 Chapéu de cogumelo (vermelho com bolinhas brancas)
+ else if (em === "hat_mushroom") {
+   // Corpo do cogumelo (mais colado na cabeça)
+   r += '<rect x="3" y="-1" width="6" height="1" fill="#E82C2C"/>';   // Topo arredondado
+   r += '<rect x="1" y="0" width="10" height="1" fill="#E82C2C"/>';   // Meio largo
+   r += '<rect x="1" y="1" width="10" height="1" fill="#D7191F"/>';   // Base (sombra)
+   
+   // Bolinhas brancas
+   r += '<rect x="3" y="0" width="1" height="1" fill="#FFFFFF"/>';    // Bolinha esquerda
+   r += '<rect x="8" y="0" width="1" height="1" fill="#FFFFFF"/>';    // Bolinha direita
+   r += '<rect x="5" y="-1" width="2" height="1" fill="#FFFFFF"/>';   // Bolinha topo
+   r += '<rect x="4" y="1" width="1" height="1" fill="#FFFFFF"/>';    // Bolinha base esq
+   r += '<rect x="7" y="1" width="1" height="1" fill="#FFFFFF"/>';    // Bolinha base dir
+ }
+ // 🐒 Chapéu do Macaco Louco (roxo com detalhes brancos)
+ else if (em === "hat_monkey") {
+   // Corpo principal do gorro (descendo até encostar na cabeça)
+   r += '<rect x="2" y="-1" width="8" height="2" fill="#8B3FE8"/>';   // Topo arredondado
+   r += '<rect x="1" y="1" width="10" height="1" fill="#7C5CFF"/>';   // Base do gorro (mais larga)
+   
+   // Detalhes (Orelhas/bolinhas do macaco)
+   r += '<rect x="2" y="-1" width="1" height="2" fill="#FFFFFF"/>';   // Orelha esquerda
+   r += '<rect x="9" y="-1" width="1" height="2" fill="#FFFFFF"/>';   // Orelha direita
+   
+   // Detalhe da testa
+   r += '<rect x="4" y="0" width="4" height="1" fill="#FFFFFF"/>';    // Faixa branca central
+ }
+ 
+ // ===== ACESSÓRIO DE CABEÇA (lado) =====
+ // 🎀 Laço amarelo (no lado direito da cabeça)
+ else if (em === "bow_yellow") {
+   r += '<rect x="10" y="1" width="2" height="1" fill="#FFD400"/>';   // parte de cima do laço
+   r += '<rect x="9" y="2" width="1" height="1" fill="#FFD400"/>';    // aba esquerda
+   r += '<rect x="11" y="2" width="1" height="1" fill="#FFD400"/>';   // aba direita
+   r += '<rect x="10" y="2" width="1" height="1" fill="#FFB300"/>';   // nó central
+   r += '<rect x="10" y="3" width="2" height="1" fill="#FFD400"/>';   // parte de baixo
+ }
+ 
+ // ===== CAMISAS =====
  else if (em === "shirt_tie") { r += '<rect x="6" y="5" width="1" height="3" fill="#D7191F"/>'; }
  else if (em === "shirt_cape") { r += '<rect x="0" y="6" width="1" height="5" fill="#7C5CFF"/><rect x="11" y="6" width="1" height="5" fill="#7C5CFF"/>'; }
  else if (em === "shirt_armor") { r += '<rect x="4" y="6" width="4" height="3" fill="#A6A6A6"/>'; }
