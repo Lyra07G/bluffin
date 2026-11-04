@@ -81,7 +81,7 @@ const getVol = (key, def) => { let v = parseFloat(ls(key)); return isNaN(v) ? de
 const U={
   scr:"title",
   name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,copiedInvite:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||"",lang:ls("bf_lang")||"pt-BR",country:ls("bf_country")||"BR",
-  chat:[],chatInput:"",toast:"",toastT:null,
+  chat:[],chatInput:"",toast:"",toastT:null,suspects:{},
   askInput:"",ansInput:"",lastQaSub:"",lastQaTurnIdx:-1,finalSfxPlayed:false,
   musicVol: getVol("bf_mvol", 0.5), sfxVol: getVol("bf_svol", 0.8), settingsOpen: false, customizeOpen: false
 };
@@ -279,7 +279,7 @@ function connect(create,code){
      U.chat.sort((a,b)=>a.ts-b.ts);
      if(U.chat.length>100) U.chat=U.chat.slice(-100);
    }
-   if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs="";U.discOpen=null}
+   if(U.ri!==m.ri){U.ri=m.ri;U.rv=false;U.gs="";U.discOpen=null;U.suspects={}}
    if(m.qa){
      if(U.lastQaSub!==m.qa.sub || U.lastQaTurnIdx!==m.qa.turnIdx){
        if(m.qa.sub==="ask") U.askInput=""; else U.ansInput="";
@@ -401,6 +401,16 @@ function discAnswersBlock(){
  }).join("");
  return '<div class="set"><b>Respostas da rodada</b><p class="mut" style="font-size:14px;margin:0 0 4px">Toque num nome pra rever o que essa pessoa respondeu.</p>'+rows+'</div>';
 }
+function qaSuspectBoard(){
+ // Usa a lista oficial da rodada como base; não depende do status online do lobby.
+ const roster=Array.isArray(S.pl)?S.pl:[];
+ const players=roster.filter(id=>id!==S.me).map(id=>S.players.find(p=>p.id===id)||{id,n:nm(id),clr:"#8b5cf6",em:""});
+ return '<section class="qa-suspects"><div class="qa-suspects-head"><b>🕵️ Minhas teorias</b><span class="mut">Toque nos aliens para marcar</span></div>'+(players.length?'<div class="qa-suspects-grid">'+players.map(p=>{
+  const marked=!!U.suspects[p.id];
+  return '<button type="button" class="qa-suspect '+(marked?'marked':'')+'" data-a="toggleSuspect" data-i="'+esc(p.id)+'" aria-pressed="'+marked+'"><span class="qa-suspect-alien">'+pxCrew(p.clr||"#8b5cf6",{},p.em||"")+'</span><span class="qa-suspect-name">'+esc(nm(p.id))+'</span>'+(marked?'<span class="qa-suspect-tag">SUSPEITO</span>':'<span class="qa-suspect-hint">Marcar</span>')+'</button>';
+ }).join('')+'</div>':'<p class="mut">Não encontrei outros jogadores nesta rodada.</p>')+'<p class="mut qa-suspects-note">Só você vê essas marcações. Elas não afetam a votação.</p></section>';
+}
+
 function game(){
  const vb=voiceBox(),top=topBar();
  const inG=(S.pl||[]).includes(S.me);
@@ -426,7 +436,7 @@ function game(){
   const curId=S.ord[curIdx];
   const isCurrent=curId===S.me;
   const qInCycle=(qa.turnIdx%n)+1;
-  let main='';
+  let main=qaSuspectBoard();
   if(qa.sub==="ask"){
    main+='<p class="mut">Ciclo <b>'+(qa.round+1)+'/'+S.hr+'</b> · Pergunta <b>'+qInCycle+'/'+n+'</b></p>';
    if(isCurrent){
@@ -469,6 +479,7 @@ function game(){
   let poll="";
   if(S.poll)poll='<div class="card"><b>Mais uma rodada de perguntas?</b><p class="mut">Sim '+S.poll.yes+' · Não '+S.poll.no+' · '+S.poll.n+' online. A maioria decide.</p>'+(inG?'<div class="row"><button class="chip '+(S.poll.mine===true?"on":"")+'" data-a="moreVote" data-y="1" style="flex:1;text-align:center">Sim</button><button class="chip '+(S.poll.mine===false?"on":"")+'" data-a="moreVote" data-y="0" style="flex:1;text-align:center">Não</button></div>':'')+(isH()?'<button class="btn g" data-a="moreClose" style="margin-top:8px">Encerrar votação agora</button>':'')+'</div>';
   else if(inG&&S.hr<10)poll='<button class="btn g" data-a="moreAsk">Pedir mais uma rodada de perguntas</button>';
+
   return top+'<h2>Discussão</h2><p class="mut">'+(S.msg?esc(S.msg)+' ':'')+'Quem respondeu de forma vaga? Quem fugiu da pergunta?</p>'+(S.te?'<div class="timer" id="tm"></div>':'<div class="card mut">Tempo livre. O anfitrião inicia a votação.</div>')+discAnswersBlock()+poll+vb+(inG?roleBlock():'')+hb("toVote","Iniciar a votação")}
  case "vote":{
   if(!inG)return top+'<h2>Votação</h2><p class="mut">Aguarde a próxima rodada.</p>'+vb;
@@ -691,6 +702,7 @@ document.addEventListener("click",e=>{
   case "cfg":{let v=b.dataset.v;if(v==="true")v=true;else if(v==="false")v=false;else if(/^\d+$/.test(v))v=+v;send({t:"cfg",k:b.dataset.k,v});break}
   case "start":case "lobby":case "ready":case "skipRole":case "skipQA":case "moreAsk":case "moreClose":case "toVote":case "forceVote":case "revote":case "reveal":send({t:a});break;
   case "moreVote":send({t:"moreVote",y:b.dataset.y==="1"});break;
+  case "toggleSuspect":{const id=b.dataset.i;if(id&&id!==S.me&&S.pl.includes(id)){if(U.suspects[id])delete U.suspects[id];else U.suspects[id]=true;rr()}break;}
   case "vote":send({t:"vote",to:b.dataset.i});break;
   case "guess":{const t=($("gs").value||"").trim();if(!t){$("gs").focus();break}send({t:"guess",text:t});break}
   case "ask":{const t=(U.askInput||"").trim();if(!t){const el=$("qa-ask");if(el)el.focus();break}send({t:"ask",text:t});U.askInput="";rr();break}
