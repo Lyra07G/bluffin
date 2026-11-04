@@ -7,7 +7,7 @@ const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.goo
 if (process.env.TURN_URL) ICE.push({ urls: process.env.TURN_URL.split(","), username: process.env.TURN_USER || "", credential: process.env.TURN_PASS || "" });
 
 const AV_CLR = ["#FF6A00", "#FF3D7F", "#7C5CFF", "#00C2A8", "#2EA8FF", "#FFD400", "#5CD65C", "#FF5C5C"];
-const AV_EM = ["", "😀", "😎", "🤖", "🐱", "🐶", "🦊", "🐸", "🐼", "🦄", "👑", "🎲", "🔥", "🧠", "🕵️", "🎭"];
+const AV_EM = ["", "hat_cap", "hat_crown", "hat_party", "hat_top", "hat_halo", "hat_chef", "shirt_tie", "shirt_cape", "shirt_armor", "shirt_scarf"];
 const rnd = n => crypto.randomInt(n);
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const norm = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -98,13 +98,11 @@ const SIM = {
   "Praia": "Balneário", "Aeroporto": "Rodoviária", "Hospital": "Clínica", "Shopping": "Galeria", "Cinema": "Teatro", "Escola": "Faculdade", "Biblioteca": "Livraria", "Circo": "Parque de diversões", "Zoológico": "Aquário", "Estádio": "Ginásio", "Padaria": "Confeitaria", "Cachoeira": "Rio",
   "Guarda-chuva": "Guarda-sol", "Escova de dentes": "Escova de cabelo", "Controle remoto": "Controle de videogame", "Geladeira": "Freezer", "Óculos": "Óculos de sol", "Cadeado": "Fechadura", "Violão": "Guitarra", "Tesoura": "Estilete", "Espelho": "Janela", "Relógio": "Cronômetro", "Mochila": "Bolsa", "Ventilador": "Ar-condicionado"
 };
-// Palavra parecida para o modo "Nem o impostor sabe". Tema "Palavras do grupo" usa outra palavra da própria lista.
 function pickDecoy(room, word, words) {
   const alt = words.filter(x => norm(x) !== norm(word));
   if (room.cfg.theme !== "custom" && SIM[word] && norm(SIM[word]) !== norm(word)) return SIM[word];
   return alt.length ? alt[rnd(alt.length)] : word;
 }
-// Dica do modo clássico: inicial + tamanho, sem entregar a palavra.
 function mkHint(word) {
   const t = word.trim(), ws = t.split(/\s+/).filter(Boolean), n = t.replace(/[^\p{L}\p{N}]/gu, "").length;
   return "começa com “" + t[0].toUpperCase() + "” · " + (ws.length === 1 ? n + " letras" : ws.length + " palavras");
@@ -195,7 +193,6 @@ function tickQA(room) {
         else break;
       }
       if (qa.answerIdx >= qa.answerOrder.length) {
-        // Todo mundo respondeu: mostra a última resposta por um tempo antes de avançar
         if (qa.sub !== "done") { qa.sub = "done"; scheduleQaAdvance(room, qa); }
         break;
       }
@@ -203,12 +200,11 @@ function tickQA(room) {
     break;
   }
 }
-// Agenda o avanço da pergunta/rodada depois que todos responderam, dando tempo pra ler a última resposta.
 function scheduleQaAdvance(room, qa) {
   if (qa._timer) return;
   qa._timer = setTimeout(() => {
     const g = room.g;
-    if (g.qa !== qa || g.ph !== "qa" || qa.sub !== "done") return; // estado mudou nesse meio tempo (restart, skip, etc.)
+    if (g.qa !== qa || g.ph !== "qa" || qa.sub !== "done") return;
     advanceQA(room);
     broadcast(room);
   }, 4500);
@@ -224,7 +220,7 @@ function advanceQA(room) {
     qa.round++; qa.turnIdx = 0;
     if (qa.round >= g.hr) { toDisc(room); return; }
   }
-  tickQA(room); // pula quem estiver offline etc.
+  tickQA(room);
 }
 function tick(room) {
   const g = room.g, on = i => online(room, i), live = (g.pl || []).filter(on);
@@ -281,6 +277,10 @@ function act(room, me, m) {
       if (!isH || g.ph !== "lobby") return;
       if (m.k === "custom") { if (typeof m.v === "string") room.cfg.custom = m.v.slice(0, 2000); }
       else if (CFG_RULES[m.k] && CFG_RULES[m.k](m.v)) room.cfg[m.k] = m.v;
+      break;
+    case "profile":
+      if (m.clr && AV_CLR.includes(m.clr)) me.clr = m.clr;
+      if (m.em !== undefined && AV_EM.includes(m.em)) me.em = m.em;
       break;
     case "start": if (isH && (g.ph === "lobby" || g.ph === "final")) startRound(room); break;
     case "lobby": if (isH && g.ph === "final") g.ph = "lobby"; break;
