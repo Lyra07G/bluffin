@@ -147,10 +147,13 @@ function settingsModal(){
    <button class="btn p" data-a="closeSettings">Pronto</button>
  </div></div>`;
 }
+function cosmeticUnlocked(em){return !em || !!(U.profile && Array.isArray(U.profile.unlockedCosmetics) && U.profile.unlockedCosmetics.includes(em));}
+function cosmeticRequirement(em){const a=(U.profile&&U.profile.achievements||[]).find(x=>x.reward===em);return a?a.title:"Conquiste uma medalha para desbloquear";}
+function cosmeticLabel(em){return ({hat_cap:"Boné",hat_crown:"Coroa",hat_party:"Chapéu festivo",hat_top:"Cartola",hat_halo:"Auréola",hat_chef:"Chapéu de chef",hat_mushroom:"Cogumelo",hat_monkey:"Gorro macaco",bow_yellow:"Laço amarelo",shirt_tie:"Gravata",shirt_cape:"Capa",shirt_armor:"Armadura",shirt_scarf:"Cachecol"})[em]||"Sem acessório";}
 function customizeModal(){
  if(!U.customizeOpen) return "";
  const sw=AV_CLR.map(c=>'<button class="swatch'+(U.avc===c?" on":"")+'" data-a="avc" data-v="'+c+'" style="background:'+c+'" aria-label="Cor '+c+'" title="Selecionar cor"></button>').join("");
- const em=AV_EM.map((e,i)=>'<button class="cosmetic-option'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'" aria-label="'+(e?"Acessório "+(i):"Sem acessório")+'" title="'+(e?"Acessório "+(i):"Sem acessório")+'">'+pxCrew(U.avc, {}, e)+'</button>').join("");
+ const em=AV_EM.map((e,i)=>{const unlocked=cosmeticUnlocked(e);return '<button type="button" class="cosmetic-option'+(U.avem===e?" on":"")+(unlocked?"":" locked")+'" data-a="avem" data-v="'+esc(e)+'" '+(unlocked?'':'disabled aria-disabled="true"')+' aria-label="'+(e?"Acessório "+i:"Sem acessório")+'" title="'+(unlocked?(e?"Acessório "+i:"Sem acessório"):"Bloqueado: "+cosmeticRequirement(e))+'">'+pxCrew(U.avc, {}, e)+(unlocked?'':'<span class="cosmetic-lock">🔒</span>')+'</button>';}).join("");
  return `<div class="modal-bg customize-overlay" data-a="closeCustomize"><section class="modal-card customize-modal" role="dialog" aria-modal="true" aria-label="Personalizar alien">
    <button class="modal-close" data-a="closeCustomize" aria-label="Fechar">✕</button>
    <header class="customize-heading"><span class="eyebrow">IDENTIDADE DO JOGADOR</span><h2>👾 Personalizar alien</h2><p class="mut">Monte um visual que seja a sua cara.</p></header>
@@ -177,7 +180,7 @@ function refreshCustomizePreview(){
  });
  const cosmetics=modal.querySelector(".customize-cosmetics");
  if(cosmetics){
-  cosmetics.innerHTML=AV_EM.map((e,i)=>'<button type="button" class="cosmetic-option'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'" aria-label="'+(e?"Acessório "+i:"Sem acessório")+'" aria-pressed="'+(U.avem===e)+'" title="'+(e?"Acessório "+i:"Sem acessório")+'">'+pxCrew(U.avc,{},e)+'</button>').join("");
+  cosmetics.innerHTML=AV_EM.map((e,i)=>{const unlocked=cosmeticUnlocked(e);return '<button type="button" class="cosmetic-option'+(U.avem===e?" on":"")+(unlocked?"":" locked")+'" data-a="avem" data-v="'+esc(e)+'" '+(unlocked?'':'disabled aria-disabled="true"')+' aria-label="'+(e?"Acessório "+i:"Sem acessório")+'" aria-pressed="'+(U.avem===e)+'" title="'+(unlocked?(e?"Acessório "+i:"Sem acessório"):"Bloqueado: "+cosmeticRequirement(e))+'">'+pxCrew(U.avc,{},e)+(unlocked?'':'<span class="cosmetic-lock">🔒</span>')+'</button>';}).join("");
  }
 }
 function howToPlayModal(){
@@ -294,6 +297,13 @@ function connect(create,code){
   let m;try{m=JSON.parse(e.data)}catch(_){return}
   if(m.t==="s"){
    off=m.now-Date.now();delete m.now;S=m;U.scr="game";U.busy=false;U.err="";U.code=m.code;ss("bf_room",m.code);
+   if(m.profile){
+    const previous=new Set((U.profile&&U.profile.achievements||[]).filter(a=>a.unlocked).map(a=>a.id));
+    const newly=(m.profile.achievements||[]).filter(a=>a.unlocked&&!previous.has(a.id));
+    U.profile=m.profile;
+    if(newly.length){U.toast='🏆 Conquista desbloqueada: '+newly[0].title+'!';clearTimeout(U.toastT);U.toastT=setTimeout(()=>{U.toast='';rr()},4200);}
+   }
+   const myPlayer=(m.players||[]).find(x=>x.id===m.me);if(myPlayer){U.avc=myPlayer.clr||U.avc;U.avem=myPlayer.em||"";ls("bf_avc",U.avc);ls("bf_avem",U.avem);}
    if(Array.isArray(m.chat)){
      const ids=new Set(U.chat.map(x=>x.id));
      for(const c of m.chat) if(!ids.has(c.id)) U.chat.push(c);
@@ -655,7 +665,7 @@ function profileModal(){
  const p=U.profile||{stats:{matches:0,wins:0,losses:0,impostorWins:0,innocentWins:0,currentStreak:0,bestStreak:0},history:[]};
  const st=p.stats||{},rate=st.matches?Math.round((st.wins/st.matches)*100):0;
  const hist=(p.history||[]).length?(p.history||[]).map(h=>'<div class="profile-history-row"><span class="'+(h.result==="win"?"profile-win":"profile-loss")+'">'+(h.result==="win"?"VITÓRIA":"DERROTA")+'</span><span>'+(h.role==="impostor"?"Impostor":"Inocente")+'</span><span class="mut">'+esc(h.category||"Partida")+'</span><time>'+new Date(h.date).toLocaleDateString()+'</time></div>').join(""):'<p class="mut">Suas partidas concluídas aparecerão aqui.</p>';
- return '<div class="modal-bg profile-overlay" data-a="closeModal"><section class="modal-card profile-modal" role="dialog" aria-modal="true" aria-label="Meu perfil e estatísticas"><button class="modal-close" data-a="closeModal" aria-label="Fechar">✕</button><div class="profile-modal-head">'+pxCrew(U.avc,{},U.avem)+'<div><h2>Meu perfil</h2><p class="mut">'+esc(U.name||"Visitante")+'</p></div></div>'+(U.profileLoading?'<p class="mut">Carregando estatísticas...</p>':(U.profileError?'<p class="mut">'+esc(U.profileError)+'</p>':''))+'<div class="profile-stats-grid"><div><b>'+ (st.matches||0) +'</b><span>Partidas</span></div><div><b>'+ (st.wins||0) +'</b><span>Vitórias</span></div><div><b>'+ (st.losses||0) +'</b><span>Derrotas</span></div><div><b>'+rate+'%</b><span>Taxa de vitória</span></div><div><b>'+(st.impostorWins||0)+'</b><span>Vitórias impostor</span></div><div><b>'+(st.innocentWins||0)+'</b><span>Vitórias inocente</span></div><div><b>'+(st.currentStreak||0)+'</b><span>Sequência atual</span></div><div><b>'+(st.bestStreak||0)+'</b><span>Melhor sequência</span></div></div><h3>Histórico recente</h3><div class="profile-history">'+hist+'</div><p class="mut profile-note">Perfil de visitante salvo neste navegador. Cadastro e sincronização entre dispositivos serão adicionados na etapa de contas.</p></section></div>';
+ return '<div class="modal-bg profile-overlay" data-a="closeModal"><section class="modal-card profile-modal" role="dialog" aria-modal="true" aria-label="Meu perfil e estatísticas"><button class="modal-close" data-a="closeModal" aria-label="Fechar">✕</button><div class="profile-modal-head">'+pxCrew(U.avc,{},U.avem)+'<div><h2>Meu perfil</h2><p class="mut">'+esc(U.name||"Visitante")+'</p></div></div>'+(U.profileLoading?'<p class="mut">Carregando estatísticas...</p>':(U.profileError?'<p class="mut">'+esc(U.profileError)+'</p>':''))+'<div class="profile-stats-grid"><div><b>'+ (st.matches||0) +'</b><span>Partidas</span></div><div><b>'+ (st.wins||0) +'</b><span>Vitórias</span></div><div><b>'+ (st.losses||0) +'</b><span>Derrotas</span></div><div><b>'+rate+'%</b><span>Taxa de vitória</span></div><div><b>'+(st.impostorWins||0)+'</b><span>Vitórias impostor</span></div><div><b>'+(st.innocentWins||0)+'</b><span>Vitórias inocente</span></div><div><b>'+(st.currentStreak||0)+'</b><span>Sequência atual</span></div><div><b>'+(st.bestStreak||0)+'</b><span>Melhor sequência</span></div></div><h3>🏆 Conquistas e recompensas</h3><div class="achievement-grid">'+((p.achievements||[]).map(a=>'<div class="achievement-card '+(a.unlocked?'unlocked':'locked')+'"><span class="achievement-icon">'+a.icon+'</span><div class="achievement-info"><b>'+esc(a.title)+'</b><small>'+esc(a.desc)+'</small><div class="achievement-progress"><i style="width:'+Math.round((a.progress/a.target)*100)+'%"></i></div><small>'+(a.unlocked?'Desbloqueada':'Progresso: '+a.progress+'/'+a.target)+' · Item: '+esc(cosmeticLabel(a.reward))+'</small></div><span class="achievement-state">'+(a.unlocked?'✓':'🔒')+'</span></div>').join('')||'<p class="mut">Jogue partidas para desbloquear suas primeiras recompensas.</p>')+'</div><h3>Histórico recente</h3><div class="profile-history">'+hist+'</div><p class="mut profile-note">Perfil de visitante salvo neste navegador. Cadastro e sincronização entre dispositivos serão adicionados na etapa de contas.</p></section></div>';
 }
 
 // ====== NOVO CHAT COM AVATAR ======
@@ -745,7 +755,7 @@ document.addEventListener("click",e=>{
   case "answer":{const t=(U.ansInput||"").trim();if(!t){const el=$("qa-ans");if(el)el.focus();break}send({t:"answer",text:t});U.ansInput="";rr();break}
   case "rv":U.rv=!U.rv;if(U.rv) sfxReveal(); rr();break;
   case "avc":U.avc=b.dataset.v;ls("bf_avc",U.avc);if(S)send({t:"profile",clr:U.avc,em:U.avem});refreshCustomizePreview();break;
-  case "avem":U.avem=b.dataset.v;ls("bf_avem",U.avem);if(S)send({t:"profile",clr:U.avc,em:U.avem});refreshCustomizePreview();break;
+  case "avem":if(!cosmeticUnlocked(b.dataset.v)){U.toast="Esse acessório ainda está bloqueado. Desbloqueie pela conquista indicada.";rr();break;}U.avem=b.dataset.v;ls("bf_avem",U.avem);if(S)send({t:"profile",clr:U.avc,em:U.avem});refreshCustomizePreview();break;
   case "pro":U.modal="pro";rr();break;
   case "openProfile":{
    U.modal="profile";U.profileLoading=true;U.profileError="";rr();
@@ -758,7 +768,7 @@ document.addEventListener("click",e=>{
   case "closeModal":U.modal=null;U.profileLoading=false;rr();break;
   case "settings":U.settingsOpen=true;rr();break;
   case "closeSettings":U.settingsOpen=false;rr();break;
-  case "openCustomize":U.customizeOpen=true;rr();break;
+  case "openCustomize":U.customizeOpen=true;rr();fetch("/api/profile?pid="+encodeURIComponent(pid),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error();return r.json()}).then(profile=>{U.profile=profile;if(!cosmeticUnlocked(U.avem)){U.avem="";ls("bf_avem","");}rr()}).catch(()=>{});break;
   case "closeCustomize":U.customizeOpen=false;rr();break;
   case "discToggle":U.discOpen=U.discOpen===b.dataset.i?null:b.dataset.i;rr();break;
   case "copyCode":{if(!S)break;const ok=()=>{U.copied=true;rr();setTimeout(()=>{U.copied=false;rr()},1500)};

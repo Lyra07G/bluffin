@@ -1,13 +1,29 @@
 "use strict";
 const http = require("http"), fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { WebSocketServer } = require("ws");
+const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 3000;
 const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
 if (process.env.TURN_URL) ICE.push({ urls: process.env.TURN_URL.split(","), username: process.env.TURN_USER || "", credential: process.env.TURN_PASS || "" });
 
 const AV_CLR = ["#FF6A00", "#FF3D7F", "#7C5CFF", "#00C2A8", "#2EA8FF", "#FFD400", "#5CD65C", "#FF5C5C"];
-const AV_EM = ["", "hat_cap", "hat_crown", "hat_party", "hat_top", "hat_halo", "hat_chef", "shirt_tie", "shirt_cape", "shirt_armor", "shirt_scarf"];
+const AV_EM = ["", "hat_cap", "hat_crown", "hat_party", "hat_top", "hat_halo", "hat_chef", "hat_mushroom", "hat_monkey", "bow_yellow", "shirt_tie", "shirt_cape", "shirt_armor", "shirt_scarf"];
+const ACHIEVEMENTS = [
+  { id:"first_match", title:"Primeiros passos", desc:"Complete sua primeira partida.", icon:"🎮", stat:"matches", target:1, reward:"hat_party" },
+  { id:"first_win", title:"Primeira vitória", desc:"Vença sua primeira partida.", icon:"🏆", stat:"wins", target:1, reward:"hat_cap" },
+  { id:"impostor_3", title:"Mestre da mentira", desc:"Vença 3 partidas como impostor.", icon:"🕵️", stat:"impostorWins", target:3, reward:"hat_monkey" },
+  { id:"innocent_3", title:"Detetive", desc:"Vença 3 partidas como inocente.", icon:"🔎", stat:"innocentWins", target:3, reward:"bow_yellow" },
+  { id:"streak_3", title:"Embalado", desc:"Consiga 3 vitórias consecutivas.", icon:"🔥", stat:"bestStreak", target:3, reward:"hat_halo" },
+  { id:"matches_10", title:"Veterano", desc:"Complete 10 partidas.", icon:"⭐", stat:"matches", target:10, reward:"hat_mushroom" },
+  { id:"wins_5", title:"Vencedor", desc:"Vença 5 partidas.", icon:"🥇", stat:"wins", target:5, reward:"shirt_tie" },
+  { id:"impostor_5", title:"Lenda do blefe", desc:"Vença 5 partidas como impostor.", icon:"🎭", stat:"impostorWins", target:5, reward:"shirt_cape" },
+  { id:"streak_5", title:"Imparável", desc:"Consiga 5 vitórias consecutivas.", icon:"⚡", stat:"bestStreak", target:5, reward:"hat_crown" },
+  { id:"matches_25", title:"Figura conhecida", desc:"Complete 25 partidas.", icon:"👾", stat:"matches", target:25, reward:"shirt_armor" },
+  { id:"wins_10", title:"Campeão", desc:"Vença 10 partidas.", icon:"🏅", stat:"wins", target:10, reward:"hat_top" },
+  { id:"innocent_10", title:"Guardião da verdade", desc:"Vença 10 partidas como inocente.", icon:"🛡️", stat:"innocentWins", target:10, reward:"hat_chef" },
+  { id:"matches_50", title:"Lenda do Bluffin", desc:"Complete 50 partidas.", icon:"💎", stat:"matches", target:50, reward:"shirt_scarf" }
+];
 const rnd = n => crypto.randomInt(n);
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const norm = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -122,10 +138,60 @@ const wss = new WebSocketServer({ server, maxPayload: 16 * 1024, perMessageDefla
 const rooms = new Map();
 const DATA_DIR = path.join(__dirname, "data");
 const PROFILE_FILE = path.join(DATA_DIR, "profiles.json");
+const USE_POSTGRES = !!process.env.DATABASE_URL;
+const db = USE_POSTGRES ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
+}) : null;
 let profileStore = { players: {} };
-try { if (fs.existsSync(PROFILE_FILE)) profileStore = JSON.parse(fs.readFileSync(PROFILE_FILE, "utf8")); } catch (e) { console.error("Não foi possível ler profiles.json:", e.message); }
+let profileSaveQueue = Promise.resolve();
+try {
+  if (!USE_POSTGRES && fs.existsSync(PROFILE_FILE)) profileStore = JSON.parse(fs.readFileSync(PROFILE_FILE, "utf8"));
+} catch (e) { console.error("Não foi possível ler profiles.json:", e.message); }
 if (!profileStore || typeof profileStore !== "object" || !profileStore.players) profileStore = { players: {} };
+async function initProfileStorage() {
+  if (!USE_POSTGRES) {
+    if (process.env.RENDER) throw new Error("DATABASE_URL não configurada no Render. Configure a Internal Database URL do PostgreSQL.");
+    console.log("Armazenamento local ativo (profiles.json). Configure DATABASE_URL para usar PostgreSQL.");
+    return;
+  }
+  await db.query(`CREATE TABLE IF NOT EXISTS player_profiles (
+    player_id VARCHAR(32) PRIMARY KEY,
+    profile JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  const result = await db.query("SELECT player_id, profile FROM player_profiles");
+  profileStore.players = {};
+  for (const row of result.rows) {
+    const value = typeof row.profile === "string" ? JSON.parse(row.profile) : row.profile;
+    if (value && typeof value === "object") profileStore.players[row.player_id] = value;
+  }
+  console.log(`PostgreSQL conectado: ${result.rowCount} perfil(is) carregado(s).`);
+}
 function saveProfiles() {
+  if (USE_POSTGRES) {
+    const snapshot = Object.entries(profileStore.players).map(([id, profile]) => [id, JSON.stringify(profile)]);
+    profileSaveQueue = profileSaveQueue.then(async () => {
+      if (!snapshot.length) return;
+      const client = await db.connect();
+      try {
+        await client.query("BEGIN");
+        for (const [id, profile] of snapshot) {
+          await client.query(`INSERT INTO player_profiles (player_id, profile, updated_at)
+            VALUES ($1, $2::jsonb, NOW())
+            ON CONFLICT (player_id) DO UPDATE SET profile = EXCLUDED.profile, updated_at = NOW()`, [id, profile]);
+        }
+        await client.query("COMMIT");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        console.error("Erro ao persistir perfis no PostgreSQL:", e.message);
+      } finally { client.release(); }
+    }).catch(e => console.error("Fila de persistência do PostgreSQL:", e.message));
+    return;
+  }
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const tmp = PROFILE_FILE + ".tmp";
@@ -136,13 +202,29 @@ function saveProfiles() {
 function ensureProfile(pid, name) {
   if (!profileStore.players[pid]) profileStore.players[pid] = {
     id: pid, name: String(name || "Jogador").slice(0, 14), createdAt: Date.now(),
-    stats: { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 }, history: []
+    stats: { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 }, history: [],
+    unlockedAchievements: [], unlockedCosmetics: [""], cosmetics: { clr: AV_CLR[0], em: "" }
   };
   const p = profileStore.players[pid];
   if (name) p.name = String(name).slice(0, 14);
   if (!p.stats) p.stats = { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 };
   if (!Array.isArray(p.history)) p.history = [];
+  if (!Array.isArray(p.unlockedAchievements)) p.unlockedAchievements = [];
+  if (!Array.isArray(p.unlockedCosmetics)) p.unlockedCosmetics = [""];
+  if (!p.unlockedCosmetics.includes("")) p.unlockedCosmetics.unshift("");
+  if (!p.cosmetics) p.cosmetics = { clr: AV_CLR[0], em: "" };
+  syncAchievementUnlocks(p);
   return p;
+}
+function syncAchievementUnlocks(p) {
+  const st = p.stats || {};
+  ACHIEVEMENTS.forEach(a => {
+    if ((Number(st[a.stat]) || 0) >= a.target) {
+      if (!p.unlockedAchievements.includes(a.id)) p.unlockedAchievements.push(a.id);
+      if (!p.unlockedCosmetics.includes(a.reward)) p.unlockedCosmetics.push(a.reward);
+    }
+  });
+  if (!p.unlockedCosmetics.includes(p.cosmetics.em || "")) p.cosmetics.em = "";
 }
 function recordMatch(room) {
   const g = room.g, impostors = impsOf(g), now = Date.now();
@@ -163,14 +245,18 @@ function recordMatch(room) {
     }
     profile.history.unshift({ id: recordId, date: now, result: won ? "win" : "loss", role: isImpostor ? "impostor" : "innocent", gameWinner: g.won === "i" ? "impostor" : "innocents", category: g.cat || "", room: room.code });
     profile.history = profile.history.slice(0, 30);
+    syncAchievementUnlocks(profile);
   });
   saveProfiles();
 }
 function publicProfile(pid) {
-  const p = profileStore.players[pid];
-  if (!p) return { stats: { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 }, history: [] };
+  const p = profileStore.players[pid] || ensureProfile(pid, "Jogador");
   const st = p.stats || {};
-  return { name: p.name, stats: { matches: st.matches || 0, wins: st.wins || 0, losses: st.losses || 0, impostorWins: st.impostorWins || 0, innocentWins: st.innocentWins || 0, currentStreak: st.currentStreak || 0, bestStreak: st.bestStreak || 0 }, history: (p.history || []).slice(0, 30) };
+  const unlocked = new Set(p.unlockedAchievements || []);
+  return { name: p.name, stats: { matches: st.matches || 0, wins: st.wins || 0, losses: st.losses || 0, impostorWins: st.impostorWins || 0, innocentWins: st.innocentWins || 0, currentStreak: st.currentStreak || 0, bestStreak: st.bestStreak || 0 }, history: (p.history || []).slice(0, 30),
+    achievements: ACHIEVEMENTS.map(a => ({ id:a.id, title:a.title, desc:a.desc, icon:a.icon, reward:a.reward, target:a.target, progress:Math.min(a.target, Number(st[a.stat]) || 0), unlocked:unlocked.has(a.id) })),
+    unlockedCosmetics: (p.unlockedCosmetics || [""]).slice(), cosmetics: { ...(p.cosmetics || { clr:AV_CLR[0], em:"" }) }
+  };
 }
 function newRoom() {
   const al = "ABCDEFGHJKMNPQRSTUVWXYZ"; let code;
@@ -397,14 +483,17 @@ function act(room, me, m) {
   const g = room.g, isH = me.id === room.hostId, inG = g.pl.includes(me.id);
   switch (m.t) {
     case "profileGet": send(me, { t: "profileData", profile: publicProfile(me.id) }); return;
-    case "profile":
-      if (m.clr && AV_CLR.includes(m.clr)) me.clr = m.clr;
-      if (m.em !== undefined && AV_EM.includes(m.em)) me.em = m.em;
+    case "profile": {
+      const profile = ensureProfile(me.id, me.name);
+      if (m.clr && AV_CLR.includes(m.clr)) { me.clr = m.clr; profile.cosmetics.clr = m.clr; }
+      if (m.em !== undefined && AV_EM.includes(m.em) && profile.unlockedCosmetics.includes(m.em)) { me.em = m.em; profile.cosmetics.em = m.em; }
+      saveProfiles();
       if (validCountry(m.country)) {
         me.country = m.country;
         if (isH && g.ph === "lobby") room.cfg.country = m.country;
       }
       break;
+    }
     case "cfg":
       if (!isH || g.ph !== "lobby") return;
       if (m.k === "custom") { if (typeof m.v === "string") room.cfg.custom = m.v.slice(0, 2000); }
@@ -507,13 +596,17 @@ wss.on("connection", ws => {
       if (room) return;
       const name = String(m.name || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 14), pid = String(m.pid || "").replace(/[^a-z0-9]/gi, "").slice(0, 32);
       if (!name || !pid) return ws.send(JSON.stringify({ t: "err", m: "Digite seu nome." }));
-      const clr = AV_CLR.includes(m.clr) ? m.clr : AV_CLR[0], em = AV_EM.includes(m.em) ? m.em : "";
+      const profile = ensureProfile(pid, name);
+      const clr = AV_CLR.includes(m.clr) ? m.clr : (AV_CLR.includes(profile.cosmetics.clr) ? profile.cosmetics.clr : AV_CLR[0]);
+      const requestedEm = AV_EM.includes(m.em) && profile.unlockedCosmetics.includes(m.em) ? m.em : profile.cosmetics.em;
+      const em = profile.unlockedCosmetics.includes(requestedEm) ? requestedEm : "";
+      profile.cosmetics = { clr, em };
+      saveProfiles();
       const country = validCountry(m.country) ? m.country : "BR";
       let r;
       if (m.create) { r = newRoom(); r.cfg.country = country; }
       else { r = rooms.get(String(m.code || "").toUpperCase().slice(0, 4)); if (!r) return ws.send(JSON.stringify({ t: "err", m: "Sala não encontrada. Confira o código." })); }
       let p = r.players.get(pid);
-      ensureProfile(pid, name);
       if (!p) {
         const onlineCount = [...r.players.values()].filter(q => q.on).length;
         if (onlineCount >= 12) return ws.send(JSON.stringify({ t: "err", m: "Sala cheia (máximo de 12)." }));
@@ -579,4 +672,21 @@ server.on("error", e => {
   else console.error("Erro no servidor:", e.message);
   process.exit(1);
 });
-server.listen(PORT, "0.0.0.0", () => console.log("Bluffin rodando em http://localhost:" + PORT));
+async function startServer() {
+  try {
+    await initProfileStorage();
+    server.listen(PORT, "0.0.0.0", () => console.log("Bluffin rodando em http://localhost:" + PORT));
+  } catch (e) {
+    console.error("Não foi possível inicializar o armazenamento de perfis:", e.message);
+    process.exit(1);
+  }
+}
+startServer();
+process.on("SIGTERM", async () => {
+  try { await profileSaveQueue; if (db) await db.end(); } catch (e) { console.error(e.message); }
+  process.exit(0);
+});
+process.on("SIGINT", async () => {
+  try { await profileSaveQueue; if (db) await db.end(); } catch (e) { console.error(e.message); }
+  process.exit(0);
+});

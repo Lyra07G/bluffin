@@ -3,7 +3,14 @@
   "version": "1.0.0",
   "description": "Bluffin: jogo online de dedução e blefe para amigos",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" },
-  "engines": { "node": ">=18" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

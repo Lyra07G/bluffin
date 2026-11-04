@@ -642,3 +642,14 @@ button { -webkit-tap-highlight-color: transparent; }
  .customize-footer .btn{width:100%}
  .profile-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Conquistas e cosméticos desbloqueáveis */
+.achievement-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 18px}
+.achievement-card{display:flex;align-items:center;gap:10px;min-width:0;padding:11px;border:1px solid #443650;border-radius:12px;background:#211a2b}
+.achievement-card.locked{opacity:.72;background:#17131f}
+.achievement-card.unlocked{border-color:#8b6a32;background:linear-gradient(135deg,#30251c,#211a2b)}
+.achievement-icon{font-size:25px;flex:none}.achievement-info{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}.achievement-info b{font-size:12px}.achievement-info small{font-size:10px;color:#b9aebe;line-height:1.35}.achievement-state{font-size:16px;flex:none;color:#65e6a5}
+.achievement-progress{height:5px;overflow:hidden;border-radius:99px;background:#09070d}.achievement-progress i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff6a00,#ffd400)}
+.cosmetic-option{position:relative}.cosmetic-option.locked{cursor:not-allowed;filter:grayscale(.8);opacity:.48}.cosmetic-option.locked:hover{transform:none;border-color:#493858}.cosmetic-lock{position:absolute;right:4px;bottom:3px;padding:1px 3px;border-radius:5px;background:#09070dcc;font-size:12px;line-height:1.2}
+@media(max-width:600px){.achievement-grid{grid-template-columns:1fr}}
