@@ -1,0 +1,79 @@
+{
+  "players": {
+    "ilmidkte": {
+      "id": "ilmidkte",
+      "name": "yVitinho16",
+      "createdAt": 1793827219262,
+      "stats": {
+        "matches": 1,
+        "wins": 1,
+        "losses": 0,
+        "impostorWins": 0,
+        "innocentWins": 1,
+        "currentStreak": 1,
+        "bestStreak": 1
+      },
+      "history": [
+        {
+          "id": "1-PQUB-1793827378880",
+          "date": 1793827378880,
+          "result": "win",
+          "role": "innocent",
+          "gameWinner": "innocents",
+          "category": "Jogos e videogames",
+          "room": "PQUB"
+        }
+      ]
+    },
+    "eff6ddb4dd9f4e7cb82755e2": {
+      "id": "eff6ddb4dd9f4e7cb82755e2",
+      "name": "jotinhoa123",
+      "createdAt": 1793827291074,
+      "stats": {
+        "matches": 1,
+        "wins": 0,
+        "losses": 1,
+        "impostorWins": 0,
+        "innocentWins": 0,
+        "currentStreak": 0,
+        "bestStreak": 0
+      },
+      "history": [
+        {
+          "id": "1-PQUB-1793827378880",
+          "date": 1793827378880,
+          "result": "loss",
+          "role": "impostor",
+          "gameWinner": "innocents",
+          "category": "Jogos e videogames",
+          "room": "PQUB"
+        }
+      ]
+    },
+    "247183c2b30f4da7b21f9c75": {
+      "id": "247183c2b30f4da7b21f9c75",
+      "name": "dasda23wd",
+      "createdAt": 1793827346682,
+      "stats": {
+        "matches": 1,
+        "wins": 1,
+        "losses": 0,
+        "impostorWins": 0,
+        "innocentWins": 1,
+        "currentStreak": 1,
+        "bestStreak": 1
+      },
+      "history": [
+        {
+          "id": "1-PQUB-1793827378880",
+          "date": 1793827378880,
+          "result": "win",
+          "role": "innocent",
+          "gameWinner": "innocents",
+          "category": "Jogos e videogames",
+          "room": "PQUB"
+        }
+      ]
+    }
+  }
+}

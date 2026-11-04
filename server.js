@@ -82,6 +82,15 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
     return res.end("ok");
   }
+  if (pathname === "/api/profile") {
+    const profileId = new URL(req.url || "/api/profile", "http://localhost").searchParams.get("pid") || "";
+    if (!/^[a-z0-9]{8,32}$/i.test(profileId)) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify({ error: "Identificador inválido" }));
+    }
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+    return res.end(JSON.stringify(publicProfile(profileId)));
+  }
   if (pathname === "/") pathname = "/index.html";
   if (pathname.includes("\0") || pathname.split(/[\\/]+/).some(part => part.startsWith("."))) {
     res.writeHead(403, { "X-Content-Type-Options": "nosniff" }); return res.end("Acesso negado");
@@ -111,6 +120,58 @@ server.requestTimeout = 15000;
 const wss = new WebSocketServer({ server, maxPayload: 16 * 1024, perMessageDeflate: false });
 
 const rooms = new Map();
+const DATA_DIR = path.join(__dirname, "data");
+const PROFILE_FILE = path.join(DATA_DIR, "profiles.json");
+let profileStore = { players: {} };
+try { if (fs.existsSync(PROFILE_FILE)) profileStore = JSON.parse(fs.readFileSync(PROFILE_FILE, "utf8")); } catch (e) { console.error("Não foi possível ler profiles.json:", e.message); }
+if (!profileStore || typeof profileStore !== "object" || !profileStore.players) profileStore = { players: {} };
+function saveProfiles() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tmp = PROFILE_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(profileStore, null, 2));
+    fs.renameSync(tmp, PROFILE_FILE);
+  } catch (e) { console.error("Erro ao salvar perfis:", e.message); }
+}
+function ensureProfile(pid, name) {
+  if (!profileStore.players[pid]) profileStore.players[pid] = {
+    id: pid, name: String(name || "Jogador").slice(0, 14), createdAt: Date.now(),
+    stats: { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 }, history: []
+  };
+  const p = profileStore.players[pid];
+  if (name) p.name = String(name).slice(0, 14);
+  if (!p.stats) p.stats = { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 };
+  if (!Array.isArray(p.history)) p.history = [];
+  return p;
+}
+function recordMatch(room) {
+  const g = room.g, impostors = impsOf(g), now = Date.now();
+  const recordId = String(g.ri) + "-" + room.code + "-" + now;
+  g.pl.forEach(pid => {
+    const profile = ensureProfile(pid, g.nm[pid]);
+    const isImpostor = impostors.includes(pid);
+    const won = (g.won === "i" && isImpostor) || (g.won === "g" && !isImpostor);
+    profile.stats.matches++;
+    if (won) {
+      profile.stats.wins++;
+      profile.stats.currentStreak++;
+      profile.stats.bestStreak = Math.max(profile.stats.bestStreak, profile.stats.currentStreak);
+      if (isImpostor) profile.stats.impostorWins++; else profile.stats.innocentWins++;
+    } else {
+      profile.stats.losses++;
+      profile.stats.currentStreak = 0;
+    }
+    profile.history.unshift({ id: recordId, date: now, result: won ? "win" : "loss", role: isImpostor ? "impostor" : "innocent", gameWinner: g.won === "i" ? "impostor" : "innocents", category: g.cat || "", room: room.code });
+    profile.history = profile.history.slice(0, 30);
+  });
+  saveProfiles();
+}
+function publicProfile(pid) {
+  const p = profileStore.players[pid];
+  if (!p) return { stats: { matches: 0, wins: 0, losses: 0, impostorWins: 0, innocentWins: 0, currentStreak: 0, bestStreak: 0 }, history: [] };
+  const st = p.stats || {};
+  return { name: p.name, stats: { matches: st.matches || 0, wins: st.wins || 0, losses: st.losses || 0, impostorWins: st.impostorWins || 0, innocentWins: st.innocentWins || 0, currentStreak: st.currentStreak || 0, bestStreak: st.bestStreak || 0 }, history: (p.history || []).slice(0, 30) };
+}
 function newRoom() {
   const al = "ABCDEFGHJKMNPQRSTUVWXYZ"; let code;
   do { code = ""; for (let i = 0; i < 4; i++) code += al[rnd(al.length)]; } while (rooms.has(code));
@@ -206,6 +267,7 @@ function resolveVotes(room) {
 function finish(room, ok, gt) {
   const g = room.g, im = impsOf(g), caught = im.length > 0 && im.every(i => g.acc.includes(i));
   g.won = (caught && !ok) ? "g" : "i"; g.im = im; g.gt = gt || ""; g.ph = "final";
+  recordMatch(room);
   g.pl.forEach(i => {
     const isI = im.includes(i);
     if (g.won === "i") { if (isI) g.sc[i] = (g.sc[i] || 0) + 2; } else if (!isI) g.sc[i] = (g.sc[i] || 0) + 1;
@@ -311,7 +373,7 @@ function view(room, pid) {
     ready: !!(g.rd && g.rd[pid]), nready: g.rd ? g.pl.filter(i => g.rd[i]).length : 0,
     nvote: g.vt ? g.pl.filter(i => online(room, i) && g.vt[i]).length : 0, myvote: g.vt ? g.vt[pid] || null : null,
     guessed: g.gx ? g.gx[pid] !== undefined : false,
-    chat: room.chat.slice(-50)
+    chat: room.chat.slice(-50), profile: publicProfile(pid)
   };
   v.md = g.md || "classic";
   if (g.hn && g.hn.id === pid) v.hint = g.hn.t;
@@ -334,6 +396,7 @@ function broadcast(room) { room.players.forEach(p => { if (p.on) send(p, view(ro
 function act(room, me, m) {
   const g = room.g, isH = me.id === room.hostId, inG = g.pl.includes(me.id);
   switch (m.t) {
+    case "profileGet": send(me, { t: "profileData", profile: publicProfile(me.id) }); return;
     case "profile":
       if (m.clr && AV_CLR.includes(m.clr)) me.clr = m.clr;
       if (m.em !== undefined && AV_EM.includes(m.em)) me.em = m.em;
@@ -442,7 +505,7 @@ wss.on("connection", ws => {
     if (!m || typeof m.t !== "string") return;
     if (m.t === "join") {
       if (room) return;
-      const name = String(m.name || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 14), pid = String(m.pid || "").replace(/[^a-z0-9]/gi, "").slice(0, 12);
+      const name = String(m.name || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 14), pid = String(m.pid || "").replace(/[^a-z0-9]/gi, "").slice(0, 32);
       if (!name || !pid) return ws.send(JSON.stringify({ t: "err", m: "Digite seu nome." }));
       const clr = AV_CLR.includes(m.clr) ? m.clr : AV_CLR[0], em = AV_EM.includes(m.em) ? m.em : "";
       const country = validCountry(m.country) ? m.country : "BR";
@@ -450,6 +513,7 @@ wss.on("connection", ws => {
       if (m.create) { r = newRoom(); r.cfg.country = country; }
       else { r = rooms.get(String(m.code || "").toUpperCase().slice(0, 4)); if (!r) return ws.send(JSON.stringify({ t: "err", m: "Sala não encontrada. Confira o código." })); }
       let p = r.players.get(pid);
+      ensureProfile(pid, name);
       if (!p) {
         const onlineCount = [...r.players.values()].filter(q => q.on).length;
         if (onlineCount >= 12) return ws.send(JSON.stringify({ t: "err", m: "Sala cheia (máximo de 12)." }));

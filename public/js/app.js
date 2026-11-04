@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ss=(k,v)=>{try{if(v===undefined)return sessionStorage.getItem(k)||"";v===null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v)}catch(e){return ""}};
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}};
-let pid=ss("bf_pid");if(!pid){pid=Math.random().toString(36).slice(2,10);ss("bf_pid",pid)}
+let pid=ls("bf_pid")||ss("bf_pid");if(!pid){pid=(window.crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,"").slice(0,24):Math.random().toString(36).slice(2,14));ls("bf_pid",pid)}
 
 // ====== SISTEMA DE ÁUDIO (Web Audio API) ======
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -79,7 +79,7 @@ const CAT=[["des","🎨","Desenhos e animações"],["jog","🎮","Jogos e videog
 const getVol = (key, def) => { let v = parseFloat(ls(key)); return isNaN(v) ? def : v; };
 
 const U={
-  scr:"title",
+  scr:"title",profile:null,profileLoading:false,profileError:"",
   name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,copiedInvite:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||"",lang:ls("bf_lang")||"pt-BR",country:ls("bf_country")||"BR",
   chat:[],chatInput:"",toast:"",toastT:null,suspects:{},
   askInput:"",ansInput:"",lastQaSub:"",lastQaTurnIdx:-1,finalSfxPlayed:false,
@@ -126,7 +126,7 @@ function mountAd(id){
 
 // ====== MENUS E MODAIS ======
 function proModal(){
- if(!U.modal)return "";
+ if(U.modal!=="pro")return "";
  return '<div class="modal-ov"><div class="modal"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✨ Bluffin PRO</h2><button class="btn g" data-a="closeModal" style="width:auto;min-height:auto;padding:4px 10px;border-radius:10px">✕</button></div><p class="mut">Em breve: sem anúncios, temas exclusivos e mais opções pra sua sala.</p><ul><li>Sem anúncios</li><li>Temas e palavras exclusivas</li><li>Salas maiores</li><li>Cores e emblemas no perfil</li></ul><button class="btn p" data-a="closeModal">Entendi, já volto</button></div></div>'
 }
 function settingsModal(){
@@ -149,15 +149,36 @@ function settingsModal(){
 }
 function customizeModal(){
  if(!U.customizeOpen) return "";
- return `<div class="modal-ov"><div class="modal">
-   <div class="row" style="justify-content:space-between;align-items:center">
-     <h2 style="margin:0">👾 Personalizar</h2>
-     <button class="btn g" data-a="closeCustomize" style="width:auto;min-height:auto;padding:4px 10px;border-radius:10px">✕</button>
+ const sw=AV_CLR.map(c=>'<button class="swatch'+(U.avc===c?" on":"")+'" data-a="avc" data-v="'+c+'" style="background:'+c+'" aria-label="Cor '+c+'" title="Selecionar cor"></button>').join("");
+ const em=AV_EM.map((e,i)=>'<button class="cosmetic-option'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'" aria-label="'+(e?"Acessório "+(i):"Sem acessório")+'" title="'+(e?"Acessório "+(i):"Sem acessório")+'">'+pxCrew(U.avc, {}, e)+'</button>').join("");
+ return `<div class="modal-bg customize-overlay" data-a="closeCustomize"><section class="modal-card customize-modal" role="dialog" aria-modal="true" aria-label="Personalizar alien">
+   <button class="modal-close" data-a="closeCustomize" aria-label="Fechar">✕</button>
+   <header class="customize-heading"><span class="eyebrow">IDENTIDADE DO JOGADOR</span><h2>👾 Personalizar alien</h2><p class="mut">Monte um visual que seja a sua cara.</p></header>
+   <div class="customize-layout">
+    <aside class="customize-preview"><span class="preview-label">PRÉ-VISUALIZAÇÃO</span><div class="customize-big-alien">${pxCrew(U.avc,{},U.avem)}</div><strong>${esc(U.name||"Visitante")}</strong><span class="mut">Seu personagem</span></aside>
+    <div class="customize-options">
+     <section class="customize-section"><h3>🎨 Cor do alien</h3><p class="mut">Escolha sua cor principal</p><div class="customize-swatches">${sw}</div></section>
+     <section class="customize-section"><h3>🧢 Acessórios</h3><p class="mut">Selecione um visual</p><div class="customize-cosmetics">${em}</div></section>
+    </div>
    </div>
-   <p class="mut" style="margin-bottom:0">Mude seu alien para os amigos te reconhecerem.</p>
-   ${profilePicker()}
-   <button class="btn p" data-a="closeCustomize" style="margin-top:10px">Salvar</button>
- </div></div>`;
+   <footer class="customize-footer"><span class="mut">As alterações são salvas automaticamente.</span><button class="btn p" data-a="closeCustomize">Concluir</button></footer>
+  </section></div>`;
+}
+// Atualiza somente a prévia da customização, sem reconstruir toda a tela.
+// Isso evita o piscar causado pelo render completo a cada clique.
+function refreshCustomizePreview(){
+ const modal=document.querySelector(".customize-modal");
+ if(!modal)return;
+ const preview=modal.querySelector(".customize-big-alien");
+ if(preview)preview.innerHTML=pxCrew(U.avc,{},U.avem);
+ modal.querySelectorAll('.customize-swatches [data-a="avc"]').forEach(el=>{
+  el.classList.toggle("on",el.dataset.v===U.avc);
+  el.setAttribute("aria-pressed",String(el.dataset.v===U.avc));
+ });
+ const cosmetics=modal.querySelector(".customize-cosmetics");
+ if(cosmetics){
+  cosmetics.innerHTML=AV_EM.map((e,i)=>'<button type="button" class="cosmetic-option'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'" aria-label="'+(e?"Acessório "+i:"Sem acessório")+'" aria-pressed="'+(U.avem===e)+'" title="'+(e?"Acessório "+i:"Sem acessório")+'">'+pxCrew(U.avc,{},e)+'</button>').join("");
+ }
 }
 function howToPlayModal(){
  if(U.modal !== "howto") return "";
@@ -290,6 +311,7 @@ function connect(create,code){
    }
    voiceSync();rr();
   }
+  else if(m.t==="profileData"){U.profile=m.profile||null;rr()}
   else if(m.t==="chat"){ U.chat.push(m.msg); if(U.chat.length>100) U.chat.shift(); rr(); }
   else if(m.t==="sys"){U.toast=m.m;rr();clearTimeout(U.toastT);U.toastT=setTimeout(()=>{U.toast="";rr()},3500)}
   else if(m.t==="ice")ICE=m.ice;
@@ -568,6 +590,7 @@ function titleScreen(){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
         Como Jogar
       </button>
+      <button class="btn g" data-a="openProfile">🏆 Meu perfil e estatísticas</button>
     </div>
   </div>
   
@@ -588,8 +611,8 @@ function entry(){
  </div>
  
  <div class="menu-layout">
-   <div class="alien-side">
-     <b>Seu Alien</b>
+   <div class="alien-side" data-a="openProfile" style="cursor:pointer">
+     <b>Seu Alien · Perfil</b>
      <div style="width:80px;height:80px;margin:10px 0">
        ${pxCrew(U.avc, {}, U.avem)}
      </div>
@@ -624,6 +647,15 @@ function entry(){
  
  ${adSlot("entry")}
  <p class="foot">Bluffin · feito pra jogar com os amigos</p>`;
+}
+
+
+function profileModal(){
+ if(U.modal!=="profile")return "";
+ const p=U.profile||{stats:{matches:0,wins:0,losses:0,impostorWins:0,innocentWins:0,currentStreak:0,bestStreak:0},history:[]};
+ const st=p.stats||{},rate=st.matches?Math.round((st.wins/st.matches)*100):0;
+ const hist=(p.history||[]).length?(p.history||[]).map(h=>'<div class="profile-history-row"><span class="'+(h.result==="win"?"profile-win":"profile-loss")+'">'+(h.result==="win"?"VITÓRIA":"DERROTA")+'</span><span>'+(h.role==="impostor"?"Impostor":"Inocente")+'</span><span class="mut">'+esc(h.category||"Partida")+'</span><time>'+new Date(h.date).toLocaleDateString()+'</time></div>').join(""):'<p class="mut">Suas partidas concluídas aparecerão aqui.</p>';
+ return '<div class="modal-bg profile-overlay" data-a="closeModal"><section class="modal-card profile-modal" role="dialog" aria-modal="true" aria-label="Meu perfil e estatísticas"><button class="modal-close" data-a="closeModal" aria-label="Fechar">✕</button><div class="profile-modal-head">'+pxCrew(U.avc,{},U.avem)+'<div><h2>Meu perfil</h2><p class="mut">'+esc(U.name||"Visitante")+'</p></div></div>'+(U.profileLoading?'<p class="mut">Carregando estatísticas...</p>':(U.profileError?'<p class="mut">'+esc(U.profileError)+'</p>':''))+'<div class="profile-stats-grid"><div><b>'+ (st.matches||0) +'</b><span>Partidas</span></div><div><b>'+ (st.wins||0) +'</b><span>Vitórias</span></div><div><b>'+ (st.losses||0) +'</b><span>Derrotas</span></div><div><b>'+rate+'%</b><span>Taxa de vitória</span></div><div><b>'+(st.impostorWins||0)+'</b><span>Vitórias impostor</span></div><div><b>'+(st.innocentWins||0)+'</b><span>Vitórias inocente</span></div><div><b>'+(st.currentStreak||0)+'</b><span>Sequência atual</span></div><div><b>'+(st.bestStreak||0)+'</b><span>Melhor sequência</span></div></div><h3>Histórico recente</h3><div class="profile-history">'+hist+'</div><p class="mut profile-note">Perfil de visitante salvo neste navegador. Cadastro e sincronização entre dispositivos serão adicionados na etapa de contas.</p></section></div>';
 }
 
 // ====== NOVO CHAT COM AVATAR ======
@@ -674,7 +706,7 @@ function render(){
  $("app").classList.toggle("lobby", U.scr === "game" && S && S.ph === "lobby");
  $("app").classList.toggle("game-active", U.scr === "game" || U.scr === "entry");
  
- $("app").innerHTML=(U.scr==="title"?titleScreen():(U.scr==="game"&&S?game():entry()))+proModal()+settingsModal()+customizeModal()+howToPlayModal()+(U.toast?'<div class="toast">'+esc(U.toast)+'</div>':'');
+ $("app").innerHTML=(U.scr==="title"?titleScreen():(U.scr==="game"&&S?game():entry()))+proModal()+settingsModal()+customizeModal()+howToPlayModal()+profileModal()+(U.toast?'<div class="toast">'+esc(U.toast)+'</div>':'');
  const cp=$("chat-panel");if(cp)cp.innerHTML=chatPanel();
  if(window.BluffinI18n){window.BluffinI18n.apply($("app"));if(cp)window.BluffinI18n.apply(cp);}
  ["entry","lobby","final"].forEach(mountAd);
@@ -691,6 +723,10 @@ const rr=()=>{lastSig="";render()};
 
 document.addEventListener("click",e=>{
  const b=e.target.closest("[data-a]");if(!b||b.disabled)return;
+ // O fundo fecha o modal, mas cliques dentro do cartão não devem ser
+ // interpretados como clique no fundo. Não usar onclick inline no cartão:
+ // ele bloqueava a delegação dos botões internos.
+ if((b.classList.contains("customize-overlay")||b.classList.contains("profile-overlay")) && e.target!==b)return;
  sfxClick();
  const a=b.dataset.a;
  switch(a){
@@ -708,10 +744,18 @@ document.addEventListener("click",e=>{
   case "ask":{const t=(U.askInput||"").trim();if(!t){const el=$("qa-ask");if(el)el.focus();break}send({t:"ask",text:t});U.askInput="";rr();break}
   case "answer":{const t=(U.ansInput||"").trim();if(!t){const el=$("qa-ans");if(el)el.focus();break}send({t:"answer",text:t});U.ansInput="";rr();break}
   case "rv":U.rv=!U.rv;if(U.rv) sfxReveal(); rr();break;
-  case "avc":U.avc=b.dataset.v;ls("bf_avc",U.avc);if(S)send({t:"profile",clr:U.avc,em:U.avem});rr();break;
-  case "avem":U.avem=b.dataset.v;ls("bf_avem",U.avem);if(S)send({t:"profile",clr:U.avc,em:U.avem});rr();break;
+  case "avc":U.avc=b.dataset.v;ls("bf_avc",U.avc);if(S)send({t:"profile",clr:U.avc,em:U.avem});refreshCustomizePreview();break;
+  case "avem":U.avem=b.dataset.v;ls("bf_avem",U.avem);if(S)send({t:"profile",clr:U.avc,em:U.avem});refreshCustomizePreview();break;
   case "pro":U.modal="pro";rr();break;
-  case "closeModal":U.modal=null;rr();break;
+  case "openProfile":{
+   U.modal="profile";U.profileLoading=true;U.profileError="";rr();
+   fetch("/api/profile?pid="+encodeURIComponent(pid),{cache:"no-store"})
+    .then(r=>{if(!r.ok)throw new Error("Não foi possível carregar o perfil.");return r.json()})
+    .then(profile=>{U.profile=profile;U.profileLoading=false;U.profileError="";rr()})
+    .catch(()=>{U.profileLoading=false;U.profileError="Não foi possível carregar suas estatísticas. Verifique sua conexão e tente novamente.";rr()});
+   break;
+  }
+  case "closeModal":U.modal=null;U.profileLoading=false;rr();break;
   case "settings":U.settingsOpen=true;rr();break;
   case "closeSettings":U.settingsOpen=false;rr();break;
   case "openCustomize":U.customizeOpen=true;rr();break;
