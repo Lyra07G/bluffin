@@ -338,6 +338,21 @@ body.on-title .siderail { display: none !important; }
 .title-sub { font-family: "Press Start 2P", monospace; font-size: max(10px, calc(var(--u) * 9)); color: #bbb; line-height: 1.6; margin-bottom: max(20px, calc(var(--u) * 30)); text-shadow: 1px 1px 0 #000; }
 .title-sub b { color: var(--or); }
 
+.beta-badge {
+  position: absolute; top: -.6em; right: -.3em;
+  background: linear-gradient(135deg,#FF6A00,#FFC24D); color: #0A0A0A;
+  font-family: "Press Start 2P", monospace; font-size: .22em;
+  font-weight: 800; letter-spacing: .02em;
+  padding: .35em .5em; border-radius: 999px;
+  border: 2px solid #000; transform: rotate(8deg);
+  box-shadow: 2px 2px 0 #000; white-space: nowrap;
+}
+.beta-note {
+  font-size: 13px; color: var(--mut); line-height: 1.5;
+  text-align: center; margin: 14px auto 0; max-width: 320px;
+}
+.beta-note a { color: var(--or); font-weight: 700; text-decoration: underline; }
+
 /* Seletor de idioma acompanha a largura do menu */
 .title-content .set { width: min(100%, var(--mw)) !important; }
 

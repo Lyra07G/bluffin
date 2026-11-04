@@ -572,6 +572,7 @@ function titleScreen(){
           <line x1="21" y1="21" x2="15" y2="15"></line>
         </svg>
       </div>
+      <span class="beta-badge" title="O jogo ainda está em testes">BETA</span>
     </div>
     
     <div class="title-sub">
@@ -602,6 +603,8 @@ function titleScreen(){
       </button>
       <button class="btn g" data-a="openProfile">🏆 Meu perfil e estatísticas</button>
     </div>
+
+    <p class="beta-note">🧪 Bluffin está em <b>beta</b>. Encontrou algum erro? Avise a gente em <a href="mailto:bluffinsupport@gmail.com?subject=${encodeURIComponent("[Bluffin] Erro encontrado (BETA)")}">bluffinsupport@gmail.com</a></p>
   </div>
   
   <button class="title-edit-btn" data-a="settings">
