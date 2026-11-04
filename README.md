@@ -32,12 +32,25 @@ O áudio usa WebRTC direto entre os jogadores. Na maioria das redes funciona. Se
 - Áudio: Desligado, Por turnos (nas dicas só fala quem está na vez e, na discussão, todos falam) ou Aberto.
 - Se o anfitrião cair e não voltar em 15 segundos, o comando passa para outro jogador. Quem recarregar a página volta para a mesma sala.
 
-## Preparado para monetização (ainda não ativado)
-A interface já tem os espaços reservados, mas nada está ligado a uma rede de anúncios ou pagamento de verdade:
-- Blocos `<div class="adslot">` (função `adSlot()` no `public/index.html`) aparecem na tela inicial, na sala de espera e no placar final — nunca durante uma rodada em andamento, pra não atrapalhar o jogo. Troque o conteúdo desse `<div>` pelo snippet da rede de anúncios que você escolher (ex. Google AdSense).
-- `localStorage.bf_pro` controla se alguém é "PRO" (ainda só no navegador, sem backend real). Defina `bf_pro=1` no DevTools pra testar como fica a tela sem o selo PRO e sem o tema bloqueado.
+## Ativar anúncios de verdade (Google AdSense)
+O código já está pronto pra isso — falta só a conta. Passo a passo:
 
-Quando decidir o modelo (anúncios, assinatura ou cosméticos pagos), esses pontos são onde plugar a integração de verdade.
+1. **Publique o site primeiro.** O AdSense só aprova sites que já estão no ar com domínio público (não aceita `localhost`). Suba o Bluffin no Render ou Railway (veja acima) antes de pedir aprovação.
+2. **Crie a conta:** acesse [google.com/adsense/start](https://www.google.com/adsense/start), entre com uma conta Google (precisa ter 18 anos ou mais) e cole a URL do seu site publicado.
+3. **Espere a análise.** O Google revisa o site (pode levar de alguns dias a algumas semanas) antes de liberar os anúncios. Durante esse tempo o jogo continua funcionando normal, só sem anúncio nenhum.
+4. **Depois de aprovado, pegue dois IDs no painel do AdSense:**
+   - O **Publisher ID** (formato `ca-pub-XXXXXXXXXXXXXXXX`), em Conta > Informações da conta.
+   - Um **Slot ID** pra cada bloco de anúncio que você criar (Anúncios > Por bloco de anúncios > Criar novo bloco) — crie um bloco pra cada posição que quiser usar: `entry` (tela inicial), `lobby` (sala de espera), `final` (placar), `rail-l` e `rail-r` (laterais, só aparecem em telas largas).
+5. **Cole os IDs no código**, em `public/index.html`:
+   - Descomente a tag `<script>` do AdSense no `<head>` do arquivo e troque `SEU-PUBLISHER-ID` pelo Publisher ID.
+   - Na função `adSlot`, preencha `ADSENSE_CLIENT` com o Publisher ID e cada posição em `ADSENSE_SLOTS` com o Slot ID correspondente.
+6. **Troque o `public/ads.txt`** pela linha exata que o próprio painel do AdSense mostra em Sites > seu domínio > "Ver instruções do ads.txt".
+
+Enquanto `ADSENSE_CLIENT` estiver vazio, o site mostra só o espaço reservado (nenhum pedido é feito ao Google) — então dá pra publicar e testar tudo antes mesmo de ter a conta aprovada.
+
+**Detalhe técnico:** como o Bluffin redesenha a tela a cada evento (chat, jogador entrando etc.), cada anúncio só é pedido ao Google **uma vez** por visita (função `mountAd` no `index.html`) — pedir de novo a cada redesenho violaria a política do AdSense e arriscaria banir a conta. Os anúncios aparecem na tela inicial, na sala de espera e no placar final — nunca durante uma rodada em andamento, pra não atrapalhar o jogo.
+
+O botão **"✨ PRO"** no topo e `localStorage.bf_pro` continuam sendo só uma vitrine (sem assinatura de verdade ainda) — ficam prontos pra quando você quiser montar isso também.
 
 ## Estrutura
 - `server.js`: servidor HTTP + WebSocket e toda a lógica do jogo.

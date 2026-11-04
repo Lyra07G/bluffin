@@ -13,6 +13,8 @@
 <meta property="og:description" content="Todo mundo sabe a palavra. Menos um. Jogue com os amigos pelo navegador.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FF6A00'/%3E%3Ctext x='50' y='72' font-size='64' font-weight='800' text-anchor='middle' fill='%230A0A0A' font-family='sans-serif'%3EB%3C/text%3E%3C/svg%3E">
+<!-- Google AdSense: depois de aprovado, descomente a linha abaixo trocando SEU-PUBLISHER-ID pelo ID real (ex: ca-pub-1234567890123456). Veja o README para o passo a passo. -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-SEU-PUBLISHER-ID" crossorigin="anonymous"></script> -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -94,6 +96,8 @@ textarea{min-height:80px;resize:vertical}
 .siderail.l{left:calc(50% - 664px)}
 .siderail.r{right:calc(50% - 664px)}
 .siderail .adslot{min-height:480px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.adslot-live{width:100%}
+.siderail .adslot-live{min-height:480px;display:flex;align-items:center;justify-content:center}
 @media (min-width:1380px){.siderail{display:block}}
 @media (prefers-reduced-motion:no-preference){.secret{animation:pop .18s ease-out}@keyframes pop{from{transform:scale(.96)}to{transform:scale(1)}}}
 
@@ -181,12 +185,12 @@ h2{font-size:clamp(15px,4vw,20px);letter-spacing:0;line-height:1.6;text-shadow:3
 </style>
 </head>
 <body>
-<div class="siderail l"><div class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
+<div class="siderail l"><div data-ad-marker="rail-l" class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
 <div class="layout">
   <div id="app"></div>
   <aside id="chat-panel"></aside>
 </div>
-<div class="siderail r"><div class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
+<div class="siderail r"><div data-ad-marker="rail-r" class="adslot">📣<br>Espaço para anúncio<br><span style="opacity:.6">(desktop)</span></div></div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -207,7 +211,45 @@ function profilePicker(){
  const em=AV_EM.map(e=>'<button class="chip emoji'+(U.avem===e?" on":"")+'" data-a="avem" data-v="'+esc(e)+'">'+(e||"Aa")+'</button>').join("");
  return '<div class="set"><b>Seu perfil</b><div class="row" style="align-items:center;gap:12px">'+av(U.avc,U.avem,U.name)+'<div class="swgrid">'+sw+'</div></div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:8px">'+em+'</div></div>';
 }
-function adSlot(id){return '<div class="adslot" data-slot="'+esc(id||"")+'">📣 Espaço reservado para anúncio</div>'}
+// ====== Google AdSense ======
+// Depois de criar a conta e o site ser aprovado:
+// 1) Troque ADSENSE_CLIENT pelo seu Publisher ID (ex: "ca-pub-1234567890123456")
+// 2) No painel do AdSense, crie um bloco de anúncio pra cada posição abaixo e cole o Slot ID de cada um
+// 3) Descomente a tag <script> do AdSense no <head> do HTML (mesmo Publisher ID)
+// Enquanto isso ficar vazio, o site mostra só o espaço reservado — nada é pedido ao Google.
+const ADSENSE_CLIENT = ""; // ex: "ca-pub-1234567890123456"
+const ADSENSE_SLOTS = {entry:"",lobby:"",final:"","rail-l":"","rail-r":""}; // um Slot ID por posição
+
+function adSlot(id){return '<div class="adslot" data-ad-marker="'+esc(id||"")+'">📣 Espaço reservado para anúncio</div>'}
+// O app redesenha a tela inteira a cada evento (chat, jogador entrando etc.), mas um anúncio real só
+// pode ser pedido ao Google UMA vez por bloco (pedir de novo a cada redesenho viola a política do
+// AdSense e pode banir a conta). Por isso o elemento de anúncio é criado uma única vez e só
+// "transplantado" pro lugar certo a cada redesenho — nunca recriado.
+const AD_SLOTS={};
+function buildAdEl(id){
+ const el=document.createElement("div");
+ if(ADSENSE_CLIENT&&ADSENSE_SLOTS[id]){
+  el.className="adslot-live";
+  const ins=document.createElement("ins");
+  ins.className="adsbygoogle";ins.style.display="block";
+  ins.setAttribute("data-ad-client",ADSENSE_CLIENT);
+  ins.setAttribute("data-ad-slot",ADSENSE_SLOTS[id]);
+  ins.setAttribute("data-ad-format","auto");
+  ins.setAttribute("data-full-width-responsive","true");
+  el.appendChild(ins);
+  try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
+ }else{
+  el.className="adslot";
+  el.textContent="📣 Espaço reservado para anúncio";
+ }
+ return el;
+}
+function mountAd(id){
+ const marker=document.querySelector('[data-ad-marker="'+id+'"]');
+ if(!marker)return;
+ if(!AD_SLOTS[id])AD_SLOTS[id]=buildAdEl(id);
+ marker.replaceWith(AD_SLOTS[id]);
+}
 function proModal(){
  if(!U.modal)return "";
  return '<div class="modal-ov"><div class="modal"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✨ Bluffin PRO</h2><button class="btn g" data-a="closeModal" style="width:auto;min-height:auto;padding:4px 10px;border-radius:10px">✕</button></div><p class="mut">Em breve: sem anúncios, temas exclusivos e mais opções pra sua sala.</p><ul><li>Sem anúncios</li><li>Temas e palavras exclusivas</li><li>Salas maiores</li><li>Cores e emblemas no perfil</li></ul><button class="btn p" data-a="closeModal">Entendi, já volto</button></div></div>'
@@ -489,6 +531,7 @@ function render(){
  $("app").classList.toggle("lobby",!!(U.scr==="game"&&S&&S.ph==="lobby"));
  $("app").innerHTML=(U.scr==="game"&&S?game():entry())+proModal()+(U.toast?'<div class="toast">'+esc(U.toast)+'</div>':'');
  const cp=$("chat-panel");if(cp)cp.innerHTML=chatPanel();
+ ["entry","lobby","final"].forEach(mountAd);
 
  const newChatEl=$("chat-msgs");
  if(newChatEl) newChatEl.scrollTop=oldChatAtBottom?newChatEl.scrollHeight:oldChatScroll;
@@ -554,6 +597,7 @@ document.addEventListener("keydown",e=>{
  if(t==="nm"||t==="cd"){const b=document.querySelector('[data-a="'+(t==="cd"&&$("cd").value?"join":"create")+'"]');if(b)b.click();return}
  if(t==="gs")document.querySelector('[data-a="guess"]').click();
 });
+mountAd("rail-l");mountAd("rail-r");
 const saved=ss("bf_room");if(saved&&U.name)connect(false,saved);else render();
 </script>
 </body>
