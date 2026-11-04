@@ -339,13 +339,13 @@ body.on-title .siderail { display: none !important; }
 .title-sub b { color: var(--or); }
 
 .beta-badge {
-  position: absolute; top: -.6em; right: -.3em;
+  position: absolute; top: -.7em; right: -.6em;
   background: linear-gradient(135deg,#FF6A00,#FFC24D); color: #0A0A0A;
-  font-family: "Press Start 2P", monospace; font-size: max(14px, .4em);
+  font-family: "Press Start 2P", monospace; font-size: max(22px, .6em);
   font-weight: 800; letter-spacing: .02em;
-  padding: .35em .5em; border-radius: 999px;
-  border: 2px solid #000; transform: rotate(8deg);
-  box-shadow: 2px 2px 0 #000; white-space: nowrap;
+  padding: .4em .6em; border-radius: 999px;
+  border: 3px solid #000; transform: rotate(8deg);
+  box-shadow: 3px 3px 0 #000; white-space: nowrap;
 }
 .beta-note {
   font-size: 13px; color: var(--mut); line-height: 1.5;
