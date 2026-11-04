@@ -80,7 +80,7 @@ const getVol = (key, def) => { let v = parseFloat(ls(key)); return isNaN(v) ? de
 
 const U={
   scr:"title",
-  name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,copiedInvite:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||"",
+  name:ls("bf_name"),code:"",err:"",rv:false,ri:-1,gs:"",busy:false,modal:null,copied:false,copiedInvite:false,pro:ls("bf_pro")==="1",cw:null,avc:ls("bf_avc")||"#FF6A00",avem:ls("bf_avem")||"",lang:ls("bf_lang")||"pt-BR",country:ls("bf_country")||"BR",
   chat:[],chatInput:"",toast:"",toastT:null,
   askInput:"",ansInput:"",lastQaSub:"",lastQaTurnIdx:-1,finalSfxPlayed:false,
   musicVol: getVol("bf_mvol", 0.5), sfxVol: getVol("bf_svol", 0.8), settingsOpen: false, customizeOpen: false
@@ -226,7 +226,7 @@ function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
 function connect(create,code){
  U.busy=true;U.err="";wantCreate=create;rr();
  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
- ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code,clr:U.avc,em:U.avem})};
+ ws.onopen=()=>{retry=0;send({t:"join",name:U.name,pid,create,code,clr:U.avc,em:U.avem,country:U.country})};
  ws.onmessage=e=>{
   let m;try{m=JSON.parse(e.data)}catch(_){return}
   if(m.t==="s"){
@@ -366,11 +366,12 @@ function game(){
  case "lobby":{
   const ps=S.players,onl=ps.filter(p=>p.on).length;
   const names=lobbyList(ps);
-  if(!isH()){const c=S.cfg;return top+lobbyHead()+'<div class="code">'+esc(S.code)+'</div>'+codeRow()+names+'<div class="row"><button class="btn g" data-a="openCustomize" style="flex:1">👾 Personalizar Alien</button></div><div class="card mut">O anfitrião ajusta a partida.<br>Modo: '+(c.mode==="blind"?"Nem o impostor sabe":"Clássico")+' · Impostores: '+c.imps+' · Ciclos de perguntas: '+c.hr+' · Discussão: '+(c.timer?c.timer+" min":"livre")+' · Última chance: '+(c.last?"sim":"não")+' · Áudio: '+({off:"desligado",turns:"por turnos",open:"aberto"})[c.voice]+'</div>'+vb+adSlot("lobby")}
+  if(!isH()){const c=S.cfg;return top+lobbyHead()+'<div class="code">'+esc(S.code)+'</div>'+codeRow()+names+'<div class="row"><button class="btn g" data-a="openCustomize" style="flex:1">👾 Personalizar Alien</button></div><div class="card mut">O anfitrião ajusta a partida.<br>Modo: '+(c.mode==="blind"?"Nem o impostor sabe":"Clássico")+' · Impostores: '+c.imps+' · Ciclos de perguntas: '+c.hr+' · Discussão: '+(c.timer?c.timer+" min":"livre")+' · Última chance: '+(c.last?"sim":"não")+' · Áudio: '+({off:"desligado",turns:"por turnos",open:"aberto"})[c.voice]+' · Palavras: '+(c.wordMode==="international"?"Internacional":"Nacional · "+(({BR:"Brasil",US:"EUA",GB:"Reino Unido",PT:"Portugal",ES:"Espanha",DE:"Alemanha",FR:"França",IT:"Itália"})[c.country]||"País do anfitrião"))+'</div>'+vb+adSlot("lobby")}
   const bad=onl<3||(S.cfg.imps===2&&onl<5);
   return top+lobbyHead()+'<p class="mut">Mande o link <b>'+esc(location.origin)+'</b> e o código:</p><div class="code">'+esc(S.code)+'</div>'+codeRow()+names+
   '<div class="row"><button class="btn g" data-a="openCustomize" style="flex:1">👾 Personalizar Alien</button></div>'+
   '<div class="set"><b>Tema</b><div class="grid">'+CAT.map(([k,e,n])=>'<button class="chip '+(S.cfg.theme===k?"on":"")+'" data-a="cfg" data-k="theme" data-v="'+k+'">'+e+" "+n+'</button>').join("")+'<button class="chip '+(S.cfg.theme==="all"?"on":"")+'" data-a="cfg" data-k="theme" data-v="all">🌍 Todos</button><button class="chip '+(S.cfg.theme==="random"?"on":"")+'" data-a="cfg" data-k="theme" data-v="random">🎲 Aleatório</button><button class="chip '+(S.cfg.theme==="custom"?"on":"")+'" data-a="cfg" data-k="theme" data-v="custom" style="grid-column:1/-1">✏️ Palavras do grupo</button></div></div>'+(S.cfg.theme==="custom"?'<textarea id="cw" placeholder="Uma palavra por linha ou separadas por vírgula (mínimo 2)">'+esc(U.cw!==null?U.cw:S.cfg.custom)+'</textarea>':'')+
+  '<div class="set"><b>Origem das palavras</b><div class="seg"><button class="chip '+((S.cfg.wordMode||"national")==="national"?"on":"")+'" data-a="cfg" data-k="wordMode" data-v="national">🏠 Nacional · '+esc(({BR:"Brasil",US:"EUA",GB:"Reino Unido",PT:"Portugal",ES:"Espanha",DE:"Alemanha",FR:"França",IT:"Itália"})[S.cfg.country]||"País do anfitrião")+'</button><button class="chip '+(S.cfg.wordMode==="international"?"on":"")+'" data-a="cfg" data-k="wordMode" data-v="international">🌎 Internacional</button></div><p class="mut" style="font-size:12px;margin:6px 0 0">Nacional usa o país configurado no perfil do anfitrião. Internacional usa referências de vários países.</p></div>'+
   modeSets()+'<div class="set"><b>Impostores (2 só com 5 ou mais jogadores)</b>'+seg("imps",[[1,"1"],[2,"2"]])+'</div><div class="set"><b>Ciclos de perguntas antes da votação</b>'+seg("hr",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"]])+'</div><div class="set"><b>Tempo de discussão</b>'+seg("timer",[[0,"Livre"],[1,"1 min"],[2,"2 min"],[3,"3 min"],[5,"5 min"]])+'</div><div class="set"><b>Última chance do impostor</b>'+seg("last",[[true,"Ligada"],[false,"Desligada"]])+'</div><div class="set"><b>Empate na votação</b>'+seg("tie",[["revote","Votar de novo"],["imp","Impostor vence"]])+'</div><div class="set"><b>Áudio dentro do jogo</b>'+seg("voice",[["off","Desligado"],["turns","Por turnos"],["open","Aberto"]])+'</div>'+vb+adSlot("lobby")+
   (bad?'<p class="mut">Precisa de 3 jogadores online ou mais'+(S.cfg.imps===2?' (5 para 2 impostores)':'')+'.</p>':'')+hb("start","Começar rodada",bad)}
  case "role":{
@@ -486,6 +487,14 @@ function titleScreen(){
       Resolva o <b>mistério</b>.
     </div>
     
+    <div class="set" style="width:min(260px,90%);margin:0 auto 14px;text-align:left">
+      <label for="language-select" class="mut" style="display:block;margin-bottom:6px">🌐 Idioma / Language</label>
+      <select id="language-select" class="chip" style="width:100%;padding:10px;background:#17131f;color:#fff;border:1px solid #51445f;border-radius:10px">
+        <option value="pt-BR" ${U.lang==="pt-BR"?"selected":""}>🇧🇷 Português</option>
+        <option value="en" ${U.lang==="en"?"selected":""}>🇺🇸 English</option>
+        <option value="es" ${U.lang==="es"?"selected":""}>🇪🇸 Español</option>
+      </select>
+    </div>
     <div class="title-menu">
       <button class="btn p" data-a="startGame">
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>
@@ -529,6 +538,19 @@ function entry(){
    
    <div class="form-side">
      <div class="set"><b>Seu nome</b><input id="nm" maxlength="14" placeholder="Como os amigos vão te ver" value="${esc(U.name)}"></div>
+     <div class="set"><b>🌎 País do seu perfil</b>
+       <select id="country-select" class="chip" style="width:100%;padding:10px;background:#17131f;color:#fff;border:1px solid #51445f;border-radius:10px">
+         <option value="BR" ${U.country==="BR"?"selected":""}>🇧🇷 Brasil</option>
+         <option value="US" ${U.country==="US"?"selected":""}>🇺🇸 Estados Unidos</option>
+         <option value="GB" ${U.country==="GB"?"selected":""}>🇬🇧 Reino Unido</option>
+         <option value="PT" ${U.country==="PT"?"selected":""}>🇵🇹 Portugal</option>
+         <option value="ES" ${U.country==="ES"?"selected":""}>🇪🇸 Espanha</option>
+         <option value="DE" ${U.country==="DE"?"selected":""}>🇩🇪 Alemanha</option>
+         <option value="FR" ${U.country==="FR"?"selected":""}>🇫🇷 França</option>
+         <option value="IT" ${U.country==="IT"?"selected":""}>🇮🇹 Itália</option>
+       </select>
+       <p class="mut" style="font-size:12px;margin:5px 0 0">No modo Nacional, este país define as referências da sala que você criar.</p>
+     </div>
      ${U.err?'<p class="err">'+esc(U.err)+'</p>':''}
      <button class="btn p" data-a="create" ${U.busy?"disabled":""}>Criar sala</button>
      <div class="row">
@@ -563,7 +585,7 @@ function chatPanel(){
 function render(){
  const sg=S?{...S,cfg:{...S.cfg,custom:0},chat:0,qa:0}:null;
  const lastChat=U.chat.length>0?U.chat[U.chat.length-1].id:"";
- const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.copiedInvite,U.pro,U.toast,U.chat.length,lastChat,U.askInput.length>0,U.ansInput.length>0,U.discOpen,U.musicVol,U.sfxVol,U.settingsOpen,U.customizeOpen,U.avc,U.avem]);
+ const sig=JSON.stringify([U.scr,U.err,U.busy,U.rv,U.gs,sg,V.on,V.muted,U.modal,U.copied,U.copiedInvite,U.pro,U.toast,U.chat.length,lastChat,U.askInput.length>0,U.ansInput.length>0,U.discOpen,U.musicVol,U.sfxVol,U.settingsOpen,U.customizeOpen,U.avc,U.avem,U.lang,U.country]);
  if(sig===lastSig)return;lastSig=sig;
  const ae=document.activeElement,keep=ae&&ae.id,keepSel=(keep&&typeof ae.selectionStart==="number")?[ae.selectionStart,ae.selectionEnd]:null;
  const oldChatEl=$("chat-msgs");
@@ -593,6 +615,7 @@ function render(){
  
  $("app").innerHTML=(U.scr==="title"?titleScreen():(U.scr==="game"&&S?game():entry()))+proModal()+settingsModal()+customizeModal()+howToPlayModal()+(U.toast?'<div class="toast">'+esc(U.toast)+'</div>':'');
  const cp=$("chat-panel");if(cp)cp.innerHTML=chatPanel();
+ if(window.BluffinI18n){window.BluffinI18n.apply($("app"));if(cp)window.BluffinI18n.apply(cp);}
  ["entry","lobby","final"].forEach(mountAd);
 
  const newChatEl=$("chat-msgs");
@@ -673,6 +696,20 @@ document.addEventListener("input",e=>{
     const lbl = $("svol-label"); if(lbl) lbl.textContent = Math.round(U.sfxVol*100)+"%"; 
  }
 });
+document.addEventListener("change",e=>{
+ if(e.target.id==="language-select"){
+   U.lang=["pt-BR","en","es"].includes(e.target.value)?e.target.value:"pt-BR";
+   ls("bf_lang",U.lang);
+   if(window.BluffinI18n)window.BluffinI18n.setLanguage(U.lang).then(()=>rr());else rr();
+ }
+ if(e.target.id==="country-select"){
+   U.country=e.target.value;ls("bf_country",U.country);
+   if(S)send({t:"profile",country:U.country});
+   rr();
+ }
+});
+window.addEventListener("bluffin:locale-ready",()=>rr());
+
 document.addEventListener("keydown",e=>{
  if(e.key!=="Enter")return;
  const t=e.target.id;
