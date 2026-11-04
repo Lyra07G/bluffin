@@ -31,7 +31,9 @@ const CFG_RULES = {
   timer: v => [0, 1, 2, 3, 5].includes(v),
   last: v => typeof v === "boolean",
   tie: v => v === "revote" || v === "imp",
-  voice: v => v === "off" || v === "turns" || v === "open"
+  voice: v => v === "off" || v === "turns" || v === "open",
+  mode: v => v === "classic" || v === "blind",
+  hint: v => typeof v === "boolean"
 };
 
 const PUB = path.join(__dirname, "public");
@@ -66,7 +68,7 @@ function newRoom() {
   const room = {
     code, hostId: null, players: new Map(), streak: {}, used: [], seen: Date.now(),
     chat: [],
-    cfg: { theme: "all", custom: "", imps: 1, hr: 1, timer: 0, last: true, tie: "revote", voice: "off" },
+    cfg: { theme: "all", custom: "", imps: 1, hr: 1, timer: 0, last: true, tie: "revote", voice: "off", mode: "classic", hint: true },
     g: { ph: "lobby", ri: 0, sc: {}, pl: [], nm: {} }
   };
   rooms.set(code, room); return room;
@@ -82,7 +84,30 @@ function pickWord(room) {
   if (words.length < 2) { words = Object.values(CATS).flatMap(x => x[1]); cat = "Todos os temas"; }
   let w = words.filter(x => !room.used.includes(x));
   if (!w.length) { room.used = room.used.filter(x => !words.includes(x)); w = words; }
-  const word = w[rnd(w.length)]; room.used.push(word); return { word, cat };
+  const word = w[rnd(w.length)]; room.used.push(word); return { word, cat, words };
+}
+const SIM = {
+  "Shrek": "Mike Wazowski", "Bob Esponja": "Patrick Estrela", "Mickey Mouse": "Pato Donald", "Pikachu": "Raichu", "Tom e Jerry": "Frajola e Piu-Piu", "Os Simpsons": "Uma Família da Pesada", "Turma da Mônica": "Sítio do Picapau Amarelo", "Scooby-Doo": "Snoopy", "Rei Leão": "Madagascar", "Frozen": "Moana", "Toy Story": "Carros", "Naruto": "Dragon Ball",
+  "Minecraft": "Terraria", "Fortnite": "PUBG", "Super Mario": "Sonic", "Free Fire": "Call of Duty", "Among Us": "Fall Guys", "FIFA": "PES", "Zelda": "Skyrim", "Pac-Man": "Space Invaders", "Tetris": "Candy Crush", "GTA": "Red Dead Redemption", "Roblox": "Minecraft", "Pokémon": "Digimon",
+  "Titanic": "Pearl Harbor", "Harry Potter": "Percy Jackson", "Vingadores": "Liga da Justiça", "Stranger Things": "Dark", "Round 6": "Alice in Borderland", "Star Wars": "Star Trek", "Batman": "Homem de Ferro", "Avatar": "Planeta dos Macacos", "Jurassic Park": "King Kong", "Tropa de Elite": "Cidade de Deus", "Friends": "How I Met Your Mother", "Matrix": "A Origem",
+  "Darth Vader": "Lorde Voldemort", "Super-Homem": "Shazam", "Sherlock Holmes": "Hercule Poirot", "Mulher-Maravilha": "Capitã Marvel", "Chapeuzinho Vermelho": "Branca de Neve", "Coringa": "Duas-Caras", "Homer Simpson": "Peter Griffin", "Saci Pererê": "Curupira", "Peter Pan": "Pinóquio", "Gandalf": "Dumbledore", "Hulk": "Shrek", "Homem-Aranha": "Homem-Formiga",
+  "Neymar": "Vinícius Júnior", "Pelé": "Maradona", "Messi": "Mbappé", "Cristiano Ronaldo": "Haaland", "Maracanã": "Mineirão", "Flamengo": "Corinthians", "Grêmio": "Cruzeiro", "Internacional": "Sport", "Copa do Mundo": "Olimpíadas", "Pênalti": "Escanteio", "Árbitro": "Bandeirinha", "Ronaldinho Gaúcho": "Kaká",
+  "Anitta": "Ludmilla", "Xuxa": "Angélica", "Silvio Santos": "Faustão", "Ivete Sangalo": "Claudia Leitte", "Gusttavo Lima": "Wesley Safadão", "Taylor Swift": "Selena Gomez", "Beyoncé": "Jennifer Lopez", "Rihanna": "Lady Gaga", "Elon Musk": "Jeff Bezos", "Michael Jackson": "Prince", "Gisele Bündchen": "Adriana Lima", "Luciano Huck": "Rodrigo Faro",
+  "Girafa": "Zebra", "Pinguim": "Foca", "Tubarão": "Orca", "Camaleão": "Iguana", "Polvo": "Lula", "Elefante": "Hipopótamo", "Canguru": "Coala", "Coruja": "Águia", "Tartaruga": "Cágado", "Panda": "Urso-polar", "Jacaré": "Crocodilo", "Morcego": "Coruja",
+  "Pizza": "Esfiha", "Churrasco": "Costela assada", "Brigadeiro": "Beijinho", "Sushi": "Sashimi", "Feijoada": "Feijão tropeiro", "Hambúrguer": "Cachorro-quente", "Pão de queijo": "Tapioca", "Lasanha": "Canelone", "Coxinha": "Risole", "Açaí": "Sorvete", "Chimarrão": "Tereré", "Pastel": "Empada",
+  "Praia": "Balneário", "Aeroporto": "Rodoviária", "Hospital": "Clínica", "Shopping": "Galeria", "Cinema": "Teatro", "Escola": "Faculdade", "Biblioteca": "Livraria", "Circo": "Parque de diversões", "Zoológico": "Aquário", "Estádio": "Ginásio", "Padaria": "Confeitaria", "Cachoeira": "Rio",
+  "Guarda-chuva": "Guarda-sol", "Escova de dentes": "Escova de cabelo", "Controle remoto": "Controle de videogame", "Geladeira": "Freezer", "Óculos": "Óculos de sol", "Cadeado": "Fechadura", "Violão": "Guitarra", "Tesoura": "Estilete", "Espelho": "Janela", "Relógio": "Cronômetro", "Mochila": "Bolsa", "Ventilador": "Ar-condicionado"
+};
+// Palavra parecida para o modo "Nem o impostor sabe". Tema "Palavras do grupo" usa outra palavra da própria lista.
+function pickDecoy(room, word, words) {
+  const alt = words.filter(x => norm(x) !== norm(word));
+  if (room.cfg.theme !== "custom" && SIM[word] && norm(SIM[word]) !== norm(word)) return SIM[word];
+  return alt.length ? alt[rnd(alt.length)] : word;
+}
+// Dica do modo clássico: inicial + tamanho, sem entregar a palavra.
+function mkHint(word) {
+  const t = word.trim(), ws = t.split(/\s+/).filter(Boolean), n = t.replace(/[^\p{L}\p{N}]/gu, "").length;
+  return "começa com “" + t[0].toUpperCase() + "” · " + (ws.length === 1 ? n + " letras" : ws.length + " palavras");
 }
 function pickImps(room, pl, n) {
   const st = room.streak, out = [], pool = pl.filter(i => (st[i] || 0) < 2);
@@ -101,15 +126,17 @@ function startRound(room) {
   const ps = [...room.players.values()].filter(p => p.on);
   if (ps.length < 3) return;
   const pl = ps.map(p => p.id), n = Math.min(room.cfg.imps, Math.floor((pl.length - 1) / 2) || 1);
-  const imps = pickImps(room, pl, n), { word, cat } = pickWord(room), rl = {}, nm = {};
-  ps.forEach(p => { rl[p.id] = imps.includes(p.id) ? "#" : word; nm[p.id] = p.name; });
+  const imps = pickImps(room, pl, n), { word, cat, words } = pickWord(room), rl = {}, nm = {};
+  const md = room.cfg.mode === "blind" ? "blind" : "classic", dc = md === "blind" ? pickDecoy(room, word, words) : "";
+  const ord = shuffle(pl), hn = (md === "classic" && room.cfg.hint && imps.includes(ord[0])) ? { id: ord[0], t: mkHint(word) } : null;
+  ps.forEach(p => { rl[p.id] = imps.includes(p.id) ? (md === "blind" ? dc : "#") : word; nm[p.id] = p.name; });
   room.g = {
-    ph: "role", ri: room.g.ri + 1, sc: room.g.sc, pl, nm, ord: shuffle(pl), hr: room.cfg.hr, ni: n,
+    ph: "role", ri: room.g.ri + 1, sc: room.g.sc, pl, nm, ord, md, dc, hn, imps, hr: room.cfg.hr, ni: n,
     rl, word, cat, te: 0, vr: 0, cd: pl, fx: [], nd: 0, acc: [], cn: {}, im: null, won: null, gt: "", tg: 0,
     poll: null, msg: "", rd: {}, vt: {}, gx: {}, last: room.cfg.last, qa: null
   };
 }
-const impsOf = g => g.pl.filter(i => g.rl[i] === "#");
+const impsOf = g => g.pl.filter(i => (g.imps || []).includes(i));
 function toDisc(room) { const g = room.g; g.ph = "disc"; g.te = room.cfg.timer ? Date.now() + room.cfg.timer * 60000 : 0; g.poll = null; g.msg = ""; }
 function closePoll(room) {
   const g = room.g, live = g.pl.filter(i => online(room, i)), yes = live.filter(i => g.poll.y[i] === true).length;
@@ -211,6 +238,9 @@ function view(room, pid) {
     guessed: g.gx ? g.gx[pid] !== undefined : false,
     chat: room.chat.slice(-50)
   };
+  v.md = g.md || "classic";
+  if (g.hn && g.hn.id === pid) v.hint = g.hn.t;
+  if (g.ph === "final" && g.md === "blind") v.dc = g.dc;
   if (g.qa) v.qa = {
     round: g.qa.round, turnIdx: g.qa.turnIdx, sub: g.qa.sub,
     question: g.qa.question, answers: g.qa.answers, history: g.qa.history,
@@ -290,8 +320,9 @@ function act(room, me, m) {
       const text = String(m.text || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 200);
       if (!text) return;
       if (g.word && ["qa", "disc", "vote", "tie"].includes(g.ph)) {
-        const nw = norm(g.word), nt = norm(text);
-        if (nw && nt && (nt.includes(nw) || (nt.length >= 3 && nw.includes(nt)))) {
+        const nt = norm(text), own = g.rl && g.rl[me.id];
+        const hit = [g.word, own && own !== "#" ? own : null].filter(Boolean).some(w => { const nw = norm(w); return nw && nt && (nt.includes(nw) || (nt.length >= 3 && nw.includes(nt))); });
+        if (hit) {
           send(me, { t: "sys", m: "Não pode falar a palavra secreta 😉" });
           return;
         }
