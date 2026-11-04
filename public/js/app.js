@@ -476,17 +476,24 @@ function game(){
     const p = S.players.find(x => x.id === i);
     return '<button class="chip vote-chip '+(S.myvote===i?"on":"")+'" data-a="vote" data-i="'+i+'">'+pxCrew(p?p.clr:"#FFF",{},p?p.em:"")+' <span>'+esc(nm(i))+'</span></button>';
   }).join("")+'</div><p class="mut">Votos registrados: '+S.nvote+' de '+S.pl.length+'</p>'+vb+hb("forceVote","Apurar agora com os votos que chegaram")}
- case "tie":return top+'<h2>Empate!</h2><p>Empataram: <b>'+S.cd.map(i=>esc(nm(i))).join(", ")+'</b>.</p><p class="mut">Conversem mais um pouco e votem de novo, só entre os empatados.</p>'+vb+hb("revote","Votar de novo");
+ case "tie":{
+  const tieScene='<div class="px-tally">'+S.cd.map((i,idx)=>{const p=S.players.find(x=>x.id===i);return '<div class="px-c" style="animation-delay:'+(idx*.1)+'s">'+pxCrew(p?p.clr:"#FFF",{},p?p.em:"")+'</div>'}).join("")+'</div>';
+  return top+tieScene+'<h2>Empate!</h2><p>Empataram: <b>'+S.cd.map(i=>esc(nm(i))).join(", ")+'</b>.</p><p class="mut">Conversem mais um pouco e votem de novo, só entre os empatados.</p>'+vb+hb("revote","Votar de novo");
+ }
  case "tally":{const mx=Math.max(1,...Object.values(S.cn));
-  return top+'<h2>Resultado da votação</h2>'+Object.keys(S.cn).map(i=>'<div class="bar '+(S.acc.includes(i)?"top":"")+'"><span>'+esc(nm(i))+'</span><i style="width:'+(Math.round(S.cn[i]/mx*50)||1)+'%"></i><b>'+S.cn[i]+'</b></div>').join("")+'<div class="card">'+(S.acc.length?'O grupo apontou <b>'+S.acc.map(i=>esc(nm(i))).join(" e ")+'</b>.':'<b>Empate.</b> O grupo não chegou a um nome.')+'</div>'+vb+hb("reveal","Revelar o impostor")}
+  const accCrew=(S.acc.length?S.acc:Object.keys(S.cn)).map((i,idx)=>{const p=S.players.find(x=>x.id===i);return '<div class="px-c" style="animation-delay:'+(idx*.1)+'s">'+pxCrew(p?p.clr:"#FFF",S.acc.length?SUS:{},p?p.em:"")+'</div>'}).join("");
+  return top+'<div class="px-tally">'+accCrew+'</div><h2>Resultado da votação</h2>'+Object.keys(S.cn).map(i=>'<div class="bar '+(S.acc.includes(i)?"top":"")+'"><span>'+esc(nm(i))+'</span><i style="width:'+(Math.round(S.cn[i]/mx*50)||1)+'%"></i><b>'+S.cn[i]+'</b></div>').join("")+'<div class="card">'+(S.acc.length?'O grupo apontou <b>'+S.acc.map(i=>esc(nm(i))).join(" e ")+'</b>.':'<b>Empate.</b> O grupo não chegou a um nome.')+'</div>'+vb+hb("reveal","Revelar o impostor")}
  case "guess":{const isI=S.im.includes(S.me);
-  return top+'<h2>Impostor descoberto!</h2><p>'+S.im.map(i=>esc(nm(i))).join(" e ")+(S.im.length>1?" eram os impostores":" era o impostor")+'.</p>'+(isI?(S.guessed?'<p class="mut">Chute enviado. Aguardando o resultado.</p>':'<p class="mut">Última chance: escreva a palavra secreta. Só uma tentativa.</p><input id="gs" placeholder="Qual era a palavra?" autocomplete="off" value="'+esc(U.gs)+'"><button class="btn p" data-a="guess">Chutar</button>'):'<p class="mut">Aguardando o chute final. Sem soprar a resposta!</p>')+vb}
+  const guessCrew='<div class="px-guess">'+S.im.map((i,idx)=>{const p=S.players.find(x=>x.id===i);return '<div class="px-c" style="animation-delay:'+(idx*.12)+'s">'+pxCrew(p?p.clr:"#1a1326",SUS,p?p.em:"")+'</div>'}).join("")+'</div>';
+  return top+guessCrew+'<h2>Impostor descoberto!</h2><p>'+S.im.map(i=>esc(nm(i))).join(" e ")+(S.im.length>1?" eram os impostores":" era o impostor")+'.</p>'+(isI?(S.guessed?'<p class="mut">Chute enviado. Aguardando o resultado.</p>':'<p class="mut">Última chance: escreva a palavra secreta. Só uma tentativa.</p><input id="gs" placeholder="Qual era a palavra?" autocomplete="off" value="'+esc(U.gs)+'"><button class="btn p" data-a="guess">Chutar</button>'):'<p class="mut">Aguardando o chute final. Sem soprar a resposta!</p>')+vb}
  case "final":{const gr=S.won==="g";
   const why=!S.im.every(i=>S.acc.includes(i))?(S.tg?"A votação empatou e o impostor escapou.":"Pelo menos um impostor escapou."):(S.last?(gr?"Descobertos, e erraram a palavra"+(S.gt?" (chute: “"+esc(S.gt)+"”)":"")+".":"Descobertos, mas acertaram a palavra!"):"Todos os impostores foram descobertos.");
-  return '<div class="menu-hero">' + (gr ? 
-      '<div class="px-c">'+pxCrew("#2EA8FF",{},"hat_cap")+'</div><div class="px-c">'+pxCrew("#5CD65C",{},"hat_party")+'</div><div class="px-c">'+pxCrew("#FFD400",{},"hat_crown")+'</div>' : 
-      '<div class="px-c">'+pxCrew("#1a1326",SUS,"hat_top")+'</div>'
-  ) + '</div>' +
+  const crewScene='<div class="px-result '+(gr?"win":"lose")+'">'+S.pl.map((i,idx)=>{
+   const p=S.players.find(pp=>pp.id===i)||{clr:"#FF6A00",em:""};
+   const isImp=S.im.includes(i);
+   return '<div class="px-c" style="animation-delay:'+(idx*.12)+'s">'+(gr&&isImp?pxCrew(p.clr,SUS,p.em):pxCrew(p.clr,{},p.em))+'</div>';
+  }).join("")+'</div>';
+  return crewScene +
   '<div class="win '+(gr?"g":"i")+'">'+(gr?"O grupo venceu":"Impostor venceu")+'</div><p style="text-align:center">'+why+'</p><div class="card"><div class="mut">'+(S.im.length>1?"Impostores":"Impostor")+'</div><b style="font-size:24px">'+S.im.map(i=>esc(nm(i))).join(" e ")+'</b><div class="mut" style="margin-top:8px">Palavra · '+esc(S.ct||"")+'</div><b style="font-size:24px">'+esc(S.wd)+'</b>'+(S.dc?'<div class="mut" style="margin-top:8px">Palavra do impostor</div><b style="font-size:24px">'+esc(S.dc)+'</b>':'')+'</div><div class="card"><b>Placar</b>'+S.pl.map(i=>'<div class="bar"><span>'+esc(nm(i))+'</span><b>'+(S.sc[i]||0)+'</b></div>').join("")+'</div>'+adSlot("final")+vb+hb("start","Próxima rodada",S.players.filter(p=>p.on).length<3)+hb("restart","Reiniciar partida (zera placar)")+(isH()?'<button class="btn g" data-a="lobby">Trocar tema ou ajustes</button>':'<p class="mut">O anfitrião escolhe a próxima rodada.</p>')}
  }
  return top;

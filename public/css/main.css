@@ -126,6 +126,15 @@ textarea{min-height:80px;resize:vertical}
 @keyframes lamp{50%{opacity:.3;box-shadow:0 0 0 3px #000}}
 .px-floor{position:absolute;left:0;right:0;bottom:0;height:26px;background:repeating-linear-gradient(90deg,#2b2142 0 24px,#231a38 24px 48px);border-top:4px solid #3b2d63}
 .px-crew{position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center;align-items:flex-end;gap:6px;padding:0 8px;z-index:1}
+.px-result{height:120px;margin:6px 0 4px;border:4px solid #2a1f4d;box-shadow:6px 6px 0 #000;overflow:hidden;position:relative;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:0 10px 14px}
+.px-result.win{background:linear-gradient(#1a1033,#241447)}
+.px-result.lose{background:linear-gradient(#1a0b0b,#2b1414)}
+.px-result .px-c{flex:0 1 34px;min-width:12px}
+.px-result.win .px-c{animation:px-jump .5s steps(2) infinite}
+.px-result.lose .px-c{animation:px-droop 2.2s ease-in-out infinite;opacity:.75}
+@keyframes px-jump{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes px-droop{0%,50%,100%{transform:rotate(0) translateY(0)}25%{transform:rotate(-5deg) translateY(3px)}75%{transform:rotate(5deg) translateY(3px)}}
+@media (prefers-reduced-motion:reduce){.px-result.win .px-c,.px-result.lose .px-c{animation:none}}
 .px-c,.px-sus{flex:0 1 38px;min-width:14px;position:relative}
 .px-c{animation:bob 1.1s steps(2) infinite}
 .px-c.off{opacity:.35;filter:grayscale(1)}
@@ -286,8 +295,9 @@ body.on-title .siderail { display: none !important; }
 .title-bg-aliens { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 .title-bg-aliens .px-c { position: absolute; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 15px 15px rgba(0,0,0,0.9)); }
 .title-bg-aliens .px-c svg { width: 100%; height: auto; }
-.title-bg-aliens .px-c:nth-child(1) { bottom: calc(var(--al) * -.05); left: calc(var(--al) * -.1);  width: var(--al);             animation-delay: 0s;   transform: rotate(15deg); }
-.title-bg-aliens .px-c:nth-child(2) { bottom: calc(var(--al) * -.12); right: calc(var(--al) * -.04); width: calc(var(--al) * 1.2); animation-delay: 1s;   transform: rotate(-15deg); }
+@keyframes float{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-16px) rotate(var(--r,0deg))}}
+.title-bg-aliens .px-c:nth-child(1) { bottom: calc(var(--al) * -.05); left: calc(var(--al) * -.1);  width: var(--al);             animation-delay: 0s;   --r: 15deg; }
+.title-bg-aliens .px-c:nth-child(2) { bottom: calc(var(--al) * -.12); right: calc(var(--al) * -.04); width: calc(var(--al) * 1.2); animation-delay: 1s;   --r: -15deg; }
 .title-bg-aliens .px-c:nth-child(3) { top: 15%; right: 5%; width: calc(var(--al) * .6); opacity: 0.4; animation-delay: 2s; }
 .title-bg-aliens .px-c:nth-child(4) { top: 25%; left: 5%;  width: calc(var(--al) * .5); opacity: 0.3; animation-delay: 1.5s; }
 
