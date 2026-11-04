@@ -454,9 +454,9 @@ function game(){
 function titleScreen(){
  return `
   <div class="crime-board">
-    <div class="string-line" style="width: 150px; top: 20%; left: 10%; transform: rotate(25deg);"></div>
-    <div class="string-line" style="width: 200px; top: 30%; right: 5%; transform: rotate(-15deg);"></div>
-    <div class="string-line" style="width: 180px; bottom: 25%; left: 20%; transform: rotate(-45deg);"></div>
+    <div class="string-line" style="width: calc(var(--bu) * 15); top: 20%; left: 10%; transform: rotate(25deg);"></div>
+    <div class="string-line" style="width: calc(var(--bu) * 20); top: 30%; right: 5%; transform: rotate(-15deg);"></div>
+    <div class="string-line" style="width: calc(var(--bu) * 18); bottom: 25%; left: 20%; transform: rotate(-45deg);"></div>
     <div class="polaroid" style="top: 15%; left: 15%; transform: rotate(-5deg);"></div>
     <div class="polaroid" style="top: 35%; right: 15%; transform: rotate(10deg);"></div>
     <div class="polaroid" style="bottom: 20%; left: 30%; transform: rotate(15deg);"></div>
@@ -610,6 +610,7 @@ function render(){
 
  // Classes do #app
  $("app").classList.toggle("title-screen", U.scr === "title");
+ document.body.classList.toggle("on-title", U.scr === "title");
  $("app").classList.toggle("lobby", U.scr === "game" && S && S.ph === "lobby");
  $("app").classList.toggle("game-active", U.scr === "game" || U.scr === "entry");
  
