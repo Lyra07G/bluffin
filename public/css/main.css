@@ -180,8 +180,27 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--or);
 /* ---------- MENU LATERAL (ENTRY) ---------- */
 .menu-layout { display: flex; gap: 16px; align-items: stretch; }
 @media (max-width: 500px) { .menu-layout { flex-direction: column; } }
-.alien-side { flex: 0 0 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--sf); border: 2px solid var(--ln); padding: 10px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-.alien-side svg { width: 80px; height: 80px; margin-bottom: 10px; }
+.alien-side { 
+  flex: 0 0 140px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  background: var(--sf); 
+  border: 2px solid var(--ln); 
+  padding: 10px; 
+  border-radius: 16px; 
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+  /* Adicione isso para arrumar o botão */
+  gap: 10px;
+}
+.alien-side svg { width: 80px; height: 80px; margin-bottom: 0px; } /* Tirei a margem de baixo */
+.alien-side .btn { 
+  white-space: nowrap; /* Impede de quebrar em duas linhas */
+  padding: 0 10px;     /* Ajusta o espaçamento lateral */
+  font-size: 12px;     /* Diminui um pouco a fonte para caber */
+  width: 100%;         /* Ocupa a largura toda da caixa */
+}
 .form-side { flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
 .avatar-large { width: 140px; height: 140px; margin: 0 auto 15px; }
 
@@ -419,4 +438,16 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+#app.game-active .row .btn,
+#app.game-active .alien-side .btn {
+  white-space: nowrap !important; 
+  padding: 0 12px !important;     
+  min-width: max-content !important; 
+  flex: 0 0 auto !important;      
+}
+
+#app.game-active .row input {
+  flex: 1 !important; 
+  min-width: 0 !important;
 }
