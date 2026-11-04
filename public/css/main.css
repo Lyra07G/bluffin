@@ -153,9 +153,7 @@ textarea{min-height:80px;resize:vertical}
 .px-sus::before{content:"?";position:absolute;top:-22px;left:50%;margin-left:-6px;font-family:"Press Start 2P",monospace;font-size:14px;color:#ff2d4a;animation:bob .8s steps(2) infinite}
 @keyframes sus{0%,90%,100%{opacity:.9}92%,96%{opacity:.25}}
 .px-t{font-family:"Press Start 2P",ui-monospace,monospace;letter-spacing:0;font-size:18px;line-height:1.4;margin:12px 0 0;text-transform:uppercase;text-shadow:3px 3px 0 #ff2d4a}
-.wm{position:relative;height:18px;font-family:"Press Start 2P",ui-monospace,monospace;font-size:10px;color:#ff6b81;text-transform:uppercase}
-.wm span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0;animation:wm 12s infinite;animation-delay:calc(var(--i)*3s)}
-@keyframes wm{0%{opacity:0;transform:translateY(5px)}3%,22%{opacity:1;transform:none}25%,100%{opacity:0}}
+.wm{position:relative;min-height:18px;margin-top:8px;font-family:"Press Start 2P",ui-monospace,monospace;font-size:9px;line-height:1.7;color:#ff6b81;text-transform:uppercase;white-space:normal;overflow-wrap:anywhere;opacity:1;animation:none}
 .px-st{font-family:"Press Start 2P",ui-monospace,monospace;font-size:9px;color:var(--mut)}
 .px-dot{color:#5CD65C;animation:tw 1s steps(2) infinite}
 .pls{display:flex;flex-direction:column;gap:10px}
@@ -563,11 +561,7 @@ button { -webkit-tap-highlight-color: transparent; }
     animation-iteration-count: infinite !important;
   }
 
-  .wm span {
-    animation: wm 12s infinite !important;
-    animation-duration: 12s !important;
-    animation-iteration-count: infinite !important;
-  }
+  .wm { animation:none !important; opacity:1 !important; }
 
   .pl.new {
     animation: pin .3s steps(4) !important;
@@ -592,3 +586,6 @@ button { -webkit-tap-highlight-color: transparent; }
 .qa-suspect-tag{padding:4px 5px;background:#ff2d4a;color:#fff;font-family:"Press Start 2P",ui-monospace,monospace;font-size:7px;letter-spacing:0}
 .qa-suspects-note{margin:9px 0 0}
 .qa-suspect:focus-visible{outline:3px solid var(--or);outline-offset:3px}
+
+/* Texto fixo da sala de espera: sem sobreposição de animações */
+.wm,.wm *{animation:none!important;opacity:1!important;transform:none!important}

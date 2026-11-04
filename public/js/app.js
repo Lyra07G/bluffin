@@ -179,7 +179,7 @@ function howToPlayModal(){
 function shade(h,f){const n=parseInt(h.slice(1),16);return "#"+[16,8,0].map(k=>Math.round(((n>>k)&255)*f).toString(16).padStart(2,"0")).join("")}
 const CREW=["............","...oooooo...","..oooooooo..","..oohhhhoo..",".oovv..vvoo.",".oohhhhhhoo.",".obbbbbbbbo.",".obbbbbbbbo.",".obbssssbbo.",".obbbbbbbbo.",".obb....bbo.","..oo....oo..","............"];
 const SUS={ol:"#2a1f3d",vz:"#ff2d4a",hl:"#ffb3b3"};
-const WM=["Alguém aqui está mentindo…","Será que é você?","Confie em ninguém.","Tem um impostor entre nós…"];
+const WM="ALGUÉM AQUI ESTÁ MENTINDO…";
 const SEEN={};
 
 function pxCrew(c,o,em){
@@ -245,7 +245,7 @@ function pxCrew(c,o,em){
 
 function lobbyHead(){
  const ps=S.players,onl=ps.filter(p=>p.on).length;
- return '<div class="px-scene"><i class="px-stars"></i><i class="px-stars b"></i><i class="px-lamp"></i><div class="px-crew">'+ps.slice(0,10).map((p,i)=>'<div class="px-c'+(p.on?"":" off")+'" style="animation-delay:'+(i*.18)+'s">'+pxCrew(p.clr,{},p.em)+'</div>').join("")+'<div class="px-sus">'+pxCrew("#1a1326",SUS)+'</div></div><div class="px-floor"></div></div><h2 class="px-t">Sala de espera</h2><div class="wm" aria-hidden="true">'+WM.map((t,i)=>'<span style="--i:'+i+'">'+t+'</span>').join("")+'</div><p class="px-st"><span class="px-dot">●</span> '+onl+' A BORDO · SHHH</p>';
+ return '<div class="px-scene"><i class="px-stars"></i><i class="px-stars b"></i><i class="px-lamp"></i><div class="px-crew">'+ps.slice(0,10).map((p,i)=>'<div class="px-c'+(p.on?"":" off")+'" style="animation-delay:'+(i*.18)+'s">'+pxCrew(p.clr,{},p.em)+'</div>').join("")+'<div class="px-sus">'+pxCrew("#1a1326",SUS)+'</div></div><div class="px-floor"></div></div><h2 class="px-t">Sala de espera</h2><div class="wm" aria-hidden="true">'+esc(WM)+'</div><p class="px-st"><span class="px-dot">●</span> '+onl+' A BORDO · SHHH</p>';
 }
 function lobbyList(ps){
  return '<div class="pls">'+ps.map(p=>{const nw=!SEEN[p.id];SEEN[p.id]=1;
@@ -430,7 +430,7 @@ function game(){
   if(!inG)return top+'<h2>Rodada em andamento</h2><p class="mut">Você entra na próxima.</p>'+vb;
   return top+(S.md==="blind"?'<h2>Sua palavra</h2><p class="mut">Só você vê esta tela. Alguém pode ter recebido uma palavra parecida com a sua.</p>':'<h2>Seu papel</h2><p class="mut">Só você vê esta tela.</p>')+(U.rv?roleBlock():'<div class="secret hid"><span>Toque para revelar</span></div><button class="btn p" data-a="rv">Revelar meu papel</button>')+(S.ready?'<p class="mut">Pronto. Aguardando os outros ('+S.nready+' de '+S.pl.length+').</p>':'<button class="btn p" data-a="ready">Entendi, estou pronto</button>')+vb+hb("skipRole","Começar perguntas agora")}
  case "qa":{
-  const qa=S.qa;if(!qa)return top;
+  const qa=S.qa;if(!qa)return top+qaSuspectBoard();
   const n=S.ord.length;
   const curIdx=qa.turnIdx%n;
   const curId=S.ord[curIdx];
@@ -702,7 +702,7 @@ document.addEventListener("click",e=>{
   case "cfg":{let v=b.dataset.v;if(v==="true")v=true;else if(v==="false")v=false;else if(/^\d+$/.test(v))v=+v;send({t:"cfg",k:b.dataset.k,v});break}
   case "start":case "lobby":case "ready":case "skipRole":case "skipQA":case "moreAsk":case "moreClose":case "toVote":case "forceVote":case "revote":case "reveal":send({t:a});break;
   case "moreVote":send({t:"moreVote",y:b.dataset.y==="1"});break;
-  case "toggleSuspect":{const id=b.dataset.i;if(id&&id!==S.me&&S.pl.includes(id)){if(U.suspects[id])delete U.suspects[id];else U.suspects[id]=true;rr()}break;}
+  case "toggleSuspect":{const id=b.dataset.i;if(id&&S&&id!==S.me&&Array.isArray(S.pl)&&S.pl.includes(id)){if(U.suspects[id])delete U.suspects[id];else U.suspects[id]=true;rr()}break;}
   case "vote":send({t:"vote",to:b.dataset.i});break;
   case "guess":{const t=($("gs").value||"").trim();if(!t){$("gs").focus();break}send({t:"guess",text:t});break}
   case "ask":{const t=(U.askInput||"").trim();if(!t){const el=$("qa-ask");if(el)el.focus();break}send({t:"ask",text:t});U.askInput="";rr();break}
