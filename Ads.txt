@@ -1,3 +1,1 @@
-# Depois de criar a conta no Google AdSense, troque a linha abaixo pela que o
-# AdSense indicar: painel do AdSense > Sites > seu domínio > "Ver instruções do ads.txt"
-# Formato: google.com, pub-SEU-PUBLISHER-ID, DIRECT, f08c47fec0942fa0
+google.com, pub-4306159658150251, DIRECT, f08c47fec0942fa0
